@@ -54,13 +54,15 @@ class Node:
             try:
                 self.symbol = self.env[-1].lookup(self.symname)
             except KeyError:
-                # Set dummy hl group, so all fields in __repr__ are defined.
-                self.hl_group = '?'
-                raise Exception('%s can\'t lookup "%s"' % (self, self.symname))
-        if hl_group is not None:
-            self.hl_group = hl_group
-        else:
-            self.hl_group = self._make_hl_group()
+                self.symbol = None
+                if self.symname in builtins:
+                    hl_group = BUILTIN
+                else:
+                    # Set dummy hlgroup, so all fields in __repr__ are defined.
+                    hl_group = None
+        if not hl_group:
+            hl_group = self._make_hl_group()
+        self.hl_group = hl_group
         self.update_tup()
 
     def update_tup(self):
@@ -91,6 +93,12 @@ class Node:
         """Return highlight group the node belongs to."""
         sym = self.symbol
         name = self.name
+
+        if sym is None:
+            # With PEP-563 (postponed annotations), symtable does not
+            # return a symbol for an unresolved node.
+            return UNRESOLVED
+
         if sym.is_parameter():
             table = self.env[-1]
             # We have seen the node, so remove from unused parameters
@@ -164,10 +172,13 @@ class Node:
         """
         if self.hl_group == ATTRIBUTE:
             return self.env[-1]
-        if self.symbol.is_global():
-            return self.env[0]
-        if self.symbol.is_local() and not self.symbol.is_free():
-            return self.env[-1]
+
+        if self.symbol:
+            if self.symbol.is_global():
+                return self.env[0]
+            if self.symbol.is_local() and not self.symbol.is_free():
+                return self.env[-1]
+
         for table in reversed(self.env):
             # Class scopes don't extend to enclosed scopes
             if table.get_type() == 'class':
