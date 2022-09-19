@@ -48,20 +48,15 @@ class Node:
         self.symname = self._make_symname(name)
         # The target node for an attribute
         self.target = target
+
         if hl_group == ATTRIBUTE:
             self.symbol = None
         else:
-            try:
-                self.symbol = self.env[-1].lookup(self.symname)
-            except KeyError:
-                self.symbol = None
-                if self.symname in builtins:
-                    hl_group = BUILTIN
-                else:
-                    # Set dummy hlgroup, so all fields in __repr__ are defined.
-                    hl_group = None
-        if not hl_group:
+            self.symbol = self._lookup_symbol(self.env, self.symname)
+
+        if hl_group is None:
             hl_group = self._make_hl_group()
+
         self.hl_group = hl_group
         self.update_tup()
 
@@ -89,6 +84,19 @@ class Node:
             self.id,
         )
 
+    @staticmethod
+    def _lookup_symbol(env, symname):
+        # Lookup a symbol in the current context,
+        # from possibly nested symbol tables.
+        for table in reversed(env):
+            try:
+                return table.lookup(symname)
+            except KeyError:
+                pass  # move up to the parent scope/symtable
+
+        # no matching symbol found
+        return None
+
     def _make_hl_group(self):
         """Return highlight group the node belongs to."""
         sym = self.symbol
@@ -97,7 +105,11 @@ class Node:
         if sym is None:
             # With PEP-563 (postponed annotations), symtable does not
             # return a symbol for an unresolved node.
-            return UNRESOLVED
+
+            if name in builtins:
+                return BUILTIN
+            else:
+                return UNRESOLVED
 
         if sym.is_parameter():
             table = self.env[-1]

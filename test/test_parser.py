@@ -828,24 +828,46 @@ def test_posonlyargs_with_annotation():
 
 
 @pytest.mark.skipif('sys.version_info < (3, 8)')
-def test_postponed_evaluation_of_annotations_pep563():
+@pytest.mark.parametrize("enable_pep563", (False, True))
+def test_postponed_evaluation_of_annotations_pep563(enable_pep563):
     """Tests parsers with __future__ import annotations (PEP 563)."""
     # see https://peps.python.org/pep-0563/
     # see https://github.com/numirias/semshi/issues/116
     names = parse('\n'.join([
-        'from __future__ import annotations',
-        'from typing import List, Any',
+        'from __future__ import annotations' if enable_pep563 else '',
+        # globals
+        'from typing import List, Any, Dict',
         'a: int = 1',  # builtins
         'b: UnknownSymbol = 2',  # non-builtins
         'c: List[Any] = []',  # imported
+        '',
+        # nested scope and symtable
+        'def foo():',
+        '   local_var: List[Any] = []',  # local variables
+        'class Foo:',
+        '   attr: List[Any] = ()',  # class attributes
+        '   def __init__(self, v: Optional[List[Any]], built_in: int) -> Dict:'
+        '       temp: Any = built_in'
     ]))
-    assert [(n.name, n.hl_group) for n in names] == [
-        ('annotations', IMPORTED),
-        ('List', IMPORTED), ('Any', IMPORTED),
+    expected = [
+        ('annotations', IMPORTED) if enable_pep563 else (),
+        ('List', IMPORTED), ('Any', IMPORTED), ('Dict', IMPORTED),
         ('a', GLOBAL), ('int', BUILTIN),
         ('b', GLOBAL), ('UnknownSymbol', UNRESOLVED),
         ('c', GLOBAL), ('List', IMPORTED), ('Any', IMPORTED),
+        ('foo', GLOBAL),
+        ('local_var', LOCAL), ('List', IMPORTED), ('Any', IMPORTED),
+        ('Foo', GLOBAL),
+        ('attr', LOCAL), ('List', IMPORTED), ('Any', IMPORTED),
+        ('__init__', LOCAL),
+        # Note: annotations & returntypes are evaluated first than parameters
+        ('Optional', UNRESOLVED), ('List', IMPORTED), ('Any', IMPORTED),
+        ('int', BUILTIN), ('Dict', IMPORTED),
+        ('self', SELF), ('v', PARAMETER_UNUSED), ('built_in', PARAMETER),
+        ('temp', LOCAL), ('Any', IMPORTED), ('built_in', PARAMETER),
     ]
+    expected = [n for n in expected if len(n) > 0]
+    assert [(n.name, n.hl_group) for n in names] == expected
 
 
 class TestNode:
