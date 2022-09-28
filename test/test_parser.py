@@ -870,6 +870,37 @@ def test_postponed_evaluation_of_annotations_pep563(enable_pep563):
     assert [(n.name, n.hl_group) for n in names] == expected
 
 
+@pytest.mark.skipif('sys.version_info < (3, 8)')
+def test_postponed_evaluation_of_annotations_pep563_resolution(request):
+    """Additional tests for PEP 563. The code is from the PEP-563 document."""
+    path = Path(request.fspath.dirname) / 'data/pep-0563-annotations.py'
+    with open(str(path)) as f:
+        names = parse(f.read())
+
+    # print('\n' + '\n'.join(repr(n) for n in names))
+
+    # Tests the eight type annotations on method.
+    def _find_annotations_for_method():
+        for i, _ in enumerate(names):
+            if names[i].name == 'method':
+                yield names[i + 1]
+
+    annos = list(_find_annotations_for_method())
+    # print('\n' + '\n'.join(repr(n) for n in annos))
+
+    assert len(annos) == 8
+
+    assert annos[0].name == 'C' and annos[0].hl_group == GLOBAL
+    assert annos[1].name == 'D' and annos[1].hl_group == UNRESOLVED
+    assert annos[2].name == 'field2' and annos[2].hl_group == LOCAL
+    assert annos[3].name == 'field' and annos[3].hl_group == UNRESOLVED
+
+    assert annos[4].name == 'C' and annos[4].hl_group == GLOBAL
+    assert annos[5].name == 'field' and annos[5].hl_group == LOCAL
+    assert annos[6].name == 'C' and annos[6].hl_group == GLOBAL
+    assert annos[7].name == 'D' and annos[7].hl_group == LOCAL
+
+
 class TestNode:
 
     def test_node(self):
