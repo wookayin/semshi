@@ -234,8 +234,16 @@ class Plugin:
     def _mark_selected(self):
         if not self._options.mark_selected_nodes:
             return
-        if self._cur_handler:
-            self._cur_handler.mark_selected(self._vim.current.window.cursor)
+        try:
+            if self._cur_handler:
+                cursor = self._vim.current.window.cursor
+                self._cur_handler.mark_selected(cursor)
+        except neovim.api.NvimError as ex:
+            # Ignore "Invalid window ID" errors (see wookayin/semshi#3)
+            if str(ex).startswith("Invalid window id:"):
+                return
+
+            raise ex  # Re-raise other errors.
 
     def _attach_listeners(self):
         self._vim.call('semshi#buffer_attach')
