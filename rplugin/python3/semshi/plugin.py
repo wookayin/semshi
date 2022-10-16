@@ -235,9 +235,10 @@ class Plugin:
         if not self._options.mark_selected_nodes:
             return
         try:
-            if self._cur_handler:
+            handler = self._cur_handler
+            if handler:
                 cursor = self._vim.current.window.cursor
-                self._cur_handler.mark_selected(cursor)
+                handler.mark_selected(cursor)
         except neovim.api.NvimError as ex:
             # Ignore "Invalid window ID" errors (see wookayin/semshi#3)
             if str(ex).startswith("Invalid window id:"):
