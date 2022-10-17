@@ -1,10 +1,13 @@
-# Semshi
+# Semshi (A maintained fork)
 
-[![Build Status](https://travis-ci.org/numirias/semshi.svg?branch=master)](https://travis-ci.org/numirias/semshi)
-[![codecov](https://codecov.io/gh/numirias/semshi/branch/master/graph/badge.svg)](https://codecov.io/gh/numirias/semshi)
-![Python Versions](https://img.shields.io/badge/python-3.6,%203.7,%203.8-blue.svg)
+[![Build Status](https://github.com/wookayin/semshi/actions/workflows/ci.yml/badge.svg)](https://github.com/wookayin/semshi/actions)
+![Python Versions](https://img.shields.io/badge/python-3.6,%203.7,%203.8,%203.9,%203.10-blue.svg)
+
+<!--[![codecov](https://codecov.io/gh/numirias/semshi/branch/master/graph/badge.svg)](https://codecov.io/gh/numirias/semshi)-->
 
 Semshi provides semantic highlighting for Python in Neovim.
+
+*This is a maintained fork of [the original repository, numirias/semshi](https://github.com/numirias/semshi), which has been not maintained since 2021. Please watch [the tracking issue](https://github.com/wookayin/semshi/issues/1) for what has been updated in this fork.*
 
 Unlike regex-based syntax highlighters, Semshi understands Python code and performs static analysis as you type. It builds a syntax tree and symbol tables to highlight names based on their scope and context. This makes code easier to read and lets you quickly identify missing imports, unused arguments, misspelled names, and more.
 
