@@ -2,10 +2,8 @@ from collections import defaultdict
 import threading
 import time
 
-try:
-    import pynvim as neovim
-except ImportError:
-    import neovim
+import pynvim
+import pynvim.api
 
 from .parser import Parser, UnparsableError
 from .util import logger, debug_time, lines_to_code
@@ -372,7 +370,7 @@ class BufferHandler:
             new_loc = next_location(here, locs, (direction == 'prev'))
         try:
             self._vim.current.window.cursor = new_loc
-        except neovim.api.NvimError:
+        except pynvim.api.NvimError:
             # This can happen when the new cursor position is outside the
             # buffer because the code wasn't re-parsed after a buffer change.
             pass

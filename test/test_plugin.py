@@ -1,10 +1,8 @@
 import os
 import time
 
-try:
-    import pynvim as neovim
-except ImportError:
-    import neovim
+import pynvim
+import pynvim.api
 import pytest
 
 
@@ -21,7 +19,7 @@ def plugin_dir(tmpdir_factory):
 def register_plugin(plugin_dir):
     os.environ['NVIM_RPLUGIN_MANIFEST'] = str(plugin_dir.join('rplugin.vim'))
     child_argv = ['nvim', '-u', VIMRC, '--embed', '--headless']
-    vim = neovim.attach('child', argv=child_argv)
+    vim = pynvim.attach('child', argv=child_argv)
     vim.command('UpdateRemotePlugins')
     vim.quit()
     yield
@@ -61,7 +59,7 @@ class WrappedVim:
 @pytest.fixture(scope='function')
 def vim():
     argv = ['nvim', '-u', VIMRC, '--embed', '--headless']
-    vim = neovim.attach('child', argv=argv)
+    vim = pynvim.attach('child', argv=argv)
     return WrappedVim(vim)
 
 
@@ -71,7 +69,7 @@ def start_vim(tmp_path):
         if argv is None:
             argv = []
         argv = ['nvim', '-u', VIMRC, '--embed', '--headless', *argv]
-        vim = neovim.attach('child', argv=argv)
+        vim = pynvim.attach('child', argv=argv)
         if file is not None:
             fn = file or (tmp_path / 'foo.py')
             vim.command('edit %s' % fn)
@@ -262,21 +260,21 @@ def test_syntax_error_sign(start_vim):
     vim.current.buffer[:] = ['a']
     vim.wait_for_update_thread()
     time.sleep(SLEEP)
-    with pytest.raises(neovim.api.nvim.NvimError):
+    with pytest.raises(pynvim.api.nvim.NvimError):
         vim.command(jump_to_sign)
 
     vim = start_vim(['--cmd', 'let g:semshi#error_sign = 0'], file='')
     vim.current.buffer[:] = ['+']
     vim.wait_for_update_thread()
     time.sleep(SLEEP)
-    with pytest.raises(neovim.api.nvim.NvimError):
+    with pytest.raises(pynvim.api.nvim.NvimError):
         vim.command(jump_to_sign)
 
     vim = start_vim(['--cmd', 'let g:semshi#error_sign_delay = 1.0'], file='')
     vim.current.buffer[:] = ['+']
     vim.wait_for_update_thread()
     time.sleep(SLEEP)
-    with pytest.raises(neovim.api.nvim.NvimError):
+    with pytest.raises(pynvim.api.nvim.NvimError):
         vim.command(jump_to_sign)
 
 
@@ -451,5 +449,5 @@ def test_pause(start_vim):
 
 def test_bug_21(start_vim):
     vim = start_vim(file='foo.ext')
-    with pytest.raises(neovim.api.nvim.NvimError, match='.*not enabled.*'):
+    with pytest.raises(pynvim.api.nvim.NvimError, match='.*not enabled.*'):
         vim.command('Semshi goto error')

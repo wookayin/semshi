@@ -1,9 +1,7 @@
 from functools import partial, wraps
 
-try:
-    import pynvim as neovim
-except ImportError:
-    import neovim
+import pynvim
+import pynvim.api
 
 from .handler import BufferHandler
 from .node import hl_groups
@@ -36,7 +34,7 @@ def subcommand(func=None, needs_handler=False, silent_fail=True):
     return wrapper
 
 
-@neovim.plugin
+@pynvim.plugin
 class Plugin:
     """Semshi Neovim plugin.
 
@@ -70,7 +68,7 @@ class Plugin:
 
     # Must not be async here because we have to make sure that switching the
     # buffer handler is completed before other events are handled.
-    @neovim.function('SemshiBufEnter', sync=True)
+    @pynvim.function('SemshiBufEnter', sync=True)
     def event_buf_enter(self, args):
         buf_num, view_start, view_stop = args
         self._select_handler(buf_num)
@@ -78,20 +76,20 @@ class Plugin:
         self._cur_handler.update()
         self._mark_selected()
 
-    @neovim.function('SemshiBufLeave', sync=True)
+    @pynvim.function('SemshiBufLeave', sync=True)
     def event_buf_leave(self, _):
         self._cur_handler = None
 
-    @neovim.function('SemshiBufWipeout', sync=True)
+    @pynvim.function('SemshiBufWipeout', sync=True)
     def event_buf_wipeout(self, args):
         self._remove_handler(args[0])
 
-    @neovim.function('SemshiVimResized', sync=False)
+    @pynvim.function('SemshiVimResized', sync=False)
     def event_vim_resized(self, args):
         self._update_viewport(*args)
         self._mark_selected()
 
-    @neovim.function('SemshiCursorMoved', sync=False)
+    @pynvim.function('SemshiCursorMoved', sync=False)
     def event_cursor_moved(self, args):
         if self._cur_handler is None:
             # CursorMoved may trigger before BufEnter, so select the buffer if
@@ -101,7 +99,7 @@ class Plugin:
         self._update_viewport(*args)
         self._mark_selected()
 
-    @neovim.function('SemshiTextChanged', sync=False)
+    @pynvim.function('SemshiTextChanged', sync=False)
     def event_text_changed(self, _):
         if self._cur_handler is None:
             return
@@ -109,12 +107,12 @@ class Plugin:
         # unfocused buffer via e.g. nvim_buf_set_lines().
         self._cur_handler.update()
 
-    @neovim.autocmd('VimLeave', sync=True)
+    @pynvim.autocmd('VimLeave', sync=True)
     def event_vim_leave(self):
         for handler in self._handlers.values():
             handler.shutdown()
 
-    @neovim.command('Semshi', nargs='*', complete='customlist,SemshiComplete',
+    @pynvim.command('Semshi', nargs='*', complete='customlist,SemshiComplete',
                     sync=True)
     def cmd_semshi(self, args):
         if not args:
@@ -128,12 +126,12 @@ class Plugin:
         func(self, *args[1:])
 
     @staticmethod
-    @neovim.function('SemshiComplete', sync=True)
+    @pynvim.function('SemshiComplete', sync=True)
     def func_complete(arg):
         lead, *_ = arg
         return [c for c in _subcommands if c.startswith(lead)]
 
-    @neovim.function('SemshiInternalEval', sync=True)
+    @pynvim.function('SemshiInternalEval', sync=True)
     def _internal_eval(self, args):
         """Eval Python code in plugin context.
 
@@ -239,7 +237,7 @@ class Plugin:
             if handler:
                 cursor = self._vim.current.window.cursor
                 handler.mark_selected(cursor)
-        except neovim.api.NvimError as ex:
+        except pynvim.api.NvimError as ex:
             # Ignore "Invalid window ID" errors (see wookayin/semshi#3)
             if str(ex).startswith("Invalid window id:"):
                 return
