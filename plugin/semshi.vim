@@ -98,6 +98,14 @@ function! semshi#buffer_detach()
     augroup END
 endfunction
 
+function! semshi#buffer_wipeout()
+    try
+        call SemshiBufWipeout(+expand('<abuf>'))
+    catch /:E117:/
+        " UpdateRemotePlugins probably not done yet, ignore
+    endtry
+endfunction
+
 function! semshi#init()
     if g:semshi#no_default_builtin_highlight
         call s:disable_builtin_highlights()
@@ -107,7 +115,7 @@ function! semshi#init()
     endif
 
     autocmd FileType * call s:filetype_changed()
-    autocmd BufWipeout * call SemshiBufWipeout(+expand('<abuf>'))
+    autocmd BufWipeout * call semshi#buffer_wipeout()
 endfunction
 
 call semshi#init()
