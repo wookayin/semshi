@@ -4,18 +4,24 @@ on: [push, pull_request, workflow_dispatch]
 jobs:
   unit-tests:
     name: "Unit Tests"
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 10
 
     strategy:
       matrix:
         include:
           - python-version: "3.6"
+            os: ubuntu-20.04
           - python-version: "3.7"
+            os: ubuntu-22.04
           - python-version: "3.8"
+            os: ubuntu-latest
           - python-version: "3.9"
+            os: ubuntu-latest
           - python-version: "3.10"
+            os: ubuntu-latest
           - python-version: "3.11"
+            os: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v2
@@ -35,6 +41,8 @@ jobs:
 
       - name: Setup neovim
         run: |
+          sudo apt install libfuse2
+
           NVIM_VERSION="latest"
           NVIM_DOWNLOAD_URL="https://github.com/neovim/neovim/releases/latest/download/nvim.appimage"
           if [[ "${{ matrix.python-version}}" == "3.6" ]]; then
