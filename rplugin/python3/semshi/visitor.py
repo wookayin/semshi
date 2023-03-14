@@ -1,9 +1,5 @@
 # pylint: disable=unidiomatic-typecheck
-from ast import (AsyncFunctionDef, Attribute, ClassDef, DictComp, Eq,
-                 ExceptHandler, FunctionDef, GeneratorExp, Global, Gt, GtE,
-                 Import, ImportFrom, Lambda, ListComp, Load, Lt, LtE, Module,
-                 Name, NameConstant, Nonlocal, NotEq, Num, SetComp, Store, Str,
-                 Try, arg)
+import ast
 from itertools import count
 import sys
 from token import NAME, OP
@@ -13,16 +9,19 @@ from .node import ATTRIBUTE, IMPORTED, PARAMETER_UNUSED, SELF, Node
 from .util import debug_time
 
 # Node types which introduce a new scope
-BLOCKS = (Module, FunctionDef, AsyncFunctionDef, ClassDef, ListComp, DictComp,
-          SetComp, GeneratorExp, Lambda)
-FUNCTION_BLOCKS = (FunctionDef, Lambda, AsyncFunctionDef)
+BLOCKS = (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef,
+          ast.ListComp, ast.DictComp, ast.SetComp,
+          ast.GeneratorExp, ast.Lambda)
+FUNCTION_BLOCKS = (ast.FunctionDef, ast.Lambda, ast.AsyncFunctionDef)
+
 # Node types which don't require any action
 if sys.version_info < (3, 8):
-    SKIP = (NameConstant, Str, Num)
+    SKIP = (ast.NameConstant, ast.Str, ast.Num)
 else:
     from ast import Constant # pylint: disable=ungrouped-imports
     SKIP = (Constant,)
-SKIP += (Store, Load, Eq, Lt, Gt, NotEq, LtE, GtE)
+SKIP += (ast.Store, ast.Load,
+         ast.Eq, ast.Lt, ast.Gt, ast.NotEq, ast.LtE, ast.GtE)
 
 
 def tokenize_lines(lines):
@@ -75,33 +74,36 @@ class Visitor:
         """
         # Use type() because it's faster than the more idiomatic isinstance()
         type_ = type(node)
-        if type_ is Name:
+        if type_ is ast.Name:
             self._new_name(node)
             return
-        if type_ is Attribute:
+        if type_ is ast.Attribute:
             self._add_attribute(node)
             self.visit(node.value)
             return
         if type_ in SKIP:
             return
-        if type_ is Try:
+        if type_ is ast.Try:
             self._visit_try(node)
-        elif type_ is ExceptHandler:
+        elif type_ is ast.ExceptHandler:
             self._visit_except(node)
-        elif type_ in (Import, ImportFrom):
+        elif type_ in (ast.Import, ast.ImportFrom):
             self._visit_import(node)
-        elif type_ is arg:
+        elif type_ is ast.arg:
             self._visit_arg(node)
         elif type_ in FUNCTION_BLOCKS:
             self._visit_arg_defaults(node)
-        elif type_ in (ListComp, SetComp, DictComp, GeneratorExp):
+        elif type_ in (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp):
             self._visit_comp(node)
-        elif type_ in (Global, Nonlocal):
-            keyword = 'global' if type_ is Global else 'nonlocal'
+        elif type_ in (ast.Global, ast.Nonlocal):
+            keyword = 'global' if type_ is ast.Global else 'nonlocal'
             self._visit_global_nonlocal(node, keyword)
-        if type_ in (FunctionDef, ClassDef, AsyncFunctionDef):
+        elif type_ is ast.keyword:
+            pass
+
+        if type_ in (ast.FunctionDef, ast.ClassDef, ast.AsyncFunctionDef):
             self._visit_class_function_definition(node)
-            if type_ is ClassDef:
+            if type_ is ast.ClassDef:
                 self._visit_class_meta(node)
             else:
                 self._visit_args(node)
@@ -236,7 +238,7 @@ class Visitor:
         target = asname or name
         if target != '*' and '.' not in target:
             guess = 'import ' + name + (' as ' + asname if asname else '')
-            if type(node) == ImportFrom:
+            if type(node) == ast.ImportFrom:
                 guess = 'from ' + (node.module or node.level * '.') + ' ' + \
                         guess
             if self._lines[line_idx] == guess:
@@ -296,7 +298,7 @@ class Visitor:
         del node.decorator_list
         line_idx = node.lineno - 1
         # Guess offset of the name (length of the keyword + 1)
-        start = node.col_offset + (6 if type(node) is ClassDef else 4)
+        start = node.col_offset + (6 if type(node) is ast.ClassDef else 4)
         stop = start + len(node.name)
         # If the node has no decorators and its name appears directly after the
         # definition keyword, we found its position and don't need to tokenize.
@@ -374,7 +376,7 @@ class Visitor:
         method (e.g. "self._name").
         """
         # Node must be an attribute of a name (foo.attr, but not [].attr)
-        if type(node.value) is not Name:
+        if type(node.value) is not ast.Name:
             return
         target_name = node.value.id
         # Redundant, but may spare us the getattr() call in the next step
