@@ -93,7 +93,8 @@ class Visitor:
             self._visit_arg(node)
         elif type_ in FUNCTION_BLOCKS:
             self._visit_arg_defaults(node)
-        elif type_ in (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp):
+        elif type_ in (ast.ListComp, ast.SetComp, ast.DictComp,
+                       ast.GeneratorExp):
             self._visit_comp(node)
         elif type_ in (ast.Global, ast.Nonlocal):
             keyword = 'global' if type_ is ast.Global else 'nonlocal'
