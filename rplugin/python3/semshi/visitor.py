@@ -5,7 +5,7 @@ import sys
 from token import NAME, OP
 from tokenize import tokenize
 
-from .node import ATTRIBUTE, IMPORTED, PARAMETER_UNUSED, SELF, Node
+from .node import ATTRIBUTE, IMPORTED, PARAMETER_UNUSED, SELF, KEYWORD, Node
 from .util import debug_time
 
 # Node types which introduce a new scope
@@ -89,6 +89,8 @@ class Visitor:
             self._visit_except(node)
         elif type_ in (ast.Import, ast.ImportFrom):
             self._visit_import(node)
+        elif type_ is ast.keyword:
+            self._visit_keyword(node)
         elif type_ is ast.arg:
             self._visit_arg(node)
         elif type_ in FUNCTION_BLOCKS:
@@ -99,7 +101,7 @@ class Visitor:
         elif type_ in (ast.Global, ast.Nonlocal):
             keyword = 'global' if type_ is ast.Global else 'nonlocal'
             self._visit_global_nonlocal(node, keyword)
-        elif type_ is ast.keyword:
+        else:
             pass
 
         if type_ in (ast.FunctionDef, ast.ClassDef, ast.AsyncFunctionDef):
@@ -202,6 +204,25 @@ class Visitor:
         for keyword in node.keywords:
             self.visit(keyword)
         del node.keywords
+
+    def _visit_keyword(self, node: ast.keyword):
+        """Visit keyword argument in a function call."""
+        if node.arg:
+            # keyword=argument: highlight keyword
+            try:
+                lineno = node.lineno
+                col_offset = node.col_offset
+            except AttributeError:
+                # Python < 3.9 does not have node.lineno, etc.
+                # No highlight can be provided for keyworda rguments.
+                return
+            self.nodes.append(Node(
+                node.arg, lineno, col_offset, self._cur_env,
+                hl_group=KEYWORD
+            ))
+        else:
+            # This is probably (**kwargs), do nothing
+            pass
 
     def _visit_args(self, node):
         """Visit function arguments."""

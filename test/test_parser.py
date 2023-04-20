@@ -6,7 +6,7 @@ from textwrap import dedent
 import pytest
 
 from semshi import parser
-from semshi.node import (ATTRIBUTE, BUILTIN, FREE, GLOBAL, IMPORTED, LOCAL,
+from semshi.node import (ATTRIBUTE, BUILTIN, FREE, GLOBAL, IMPORTED, KEYWORD, LOCAL,
                          PARAMETER, PARAMETER_UNUSED, SELF, UNRESOLVED, Node,
                          group)
 from semshi.parser import Parser, UnparsableError
@@ -17,6 +17,9 @@ from .conftest import make_parser, make_tree, parse
 # top-level functions are parsed as LOCAL in python<3.7,
 # but as GLOBAL in Python 3.8.
 MODULE_FUNC = GLOBAL if sys.version_info >= (3, 8) else LOCAL
+
+filternone = lambda lst: [x for x in lst if x is not None]
+py39 = lambda x: (x if sys.version_info >= (3, 9) else None)
 
 
 def test_group():
@@ -172,9 +175,9 @@ def test_function_scopes():
     func(x, y=p, **z)
     ''')
     root = make_tree(names)
-    assert root['names'] == [
-        'e', 'h', 'func', 'k', 'func2', 'func', 'x', 'p', 'z'
-    ]
+    assert root['names'] == filternone([
+        'e', 'h', 'func', 'k', 'func2', 'func', 'x', py39('y'), 'p', 'z'
+    ])
     assert root['listcomp']['names'] == ['g', 'g']
     assert root['func']['names'] == ['a', 'b', 'c', 'd', 'f', 'i']
     assert root['func2']['names'] == ['j']
@@ -189,7 +192,7 @@ def test_class_scopes():
             a
     ''')
     root = make_tree(names)
-    assert root['names'] == ['a', 'A', 'x', 'z']
+    assert root['names'] == filternone(['a', 'A', 'x', py39('y'), 'z'])
 
 
 def test_import_scopes_and_positions():
@@ -482,9 +485,10 @@ def test_decorator():
         pass
     ''')
     root = make_tree(names)
-    assert root['names'] == [
-        'd1', 'a', 'c', 'A', 'd2', 'x', 'z', 'B', 'd3', 'C'
-    ]
+    assert root['names'] == filternone([
+        'd1', 'a', py39('b'), 'c', 'A',
+        'd2', 'x', py39('y'), 'z', 'B', 'd3', 'C'
+    ])
 
 def test_global_builtin():
     """A builtin name assigned globally should be highlighted as a global, not
@@ -825,6 +829,17 @@ def test_posonlyargs():
 def test_posonlyargs_with_annotation():
     names = parse('def f(x: y, /): pass')
     assert [n.hl_group for n in names] == [MODULE_FUNC, UNRESOLVED, PARAMETER_UNUSED]
+
+
+def test_keyword_arguments():
+    names = parse('foo(x, y, kwarg1=z, bar=dict(value=1))')
+    assert [n.name for n in names] == filternone([
+        'foo', 'x', 'y', py39('kwarg1'), 'z',
+        py39('bar'), 'dict', py39('value'),
+    ])
+    for n in names:
+        if n.name == 'kwarg1' or n.name == 'value':
+            assert n.hl_group == KEYWORD
 
 
 @pytest.mark.skipif('sys.version_info < (3, 8)')
