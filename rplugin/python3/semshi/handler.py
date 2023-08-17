@@ -65,13 +65,15 @@ class BufferHandler:
         """A debugging utility to print something into neovim's stdout."""
         self._vim.async_call(self._vim.api.out_write, str(s) + "\n")
 
-    def set_viewports(self, starts_and_stops):
+    def set_viewports(self, viewports):
         """Set viewports to line range from `start` to `stop` and add highlights
         that have become visible.
 
         Ensures self._views are sorted"""
         views = []
-        for start, stop in starts_and_stops:
+        for viewport in viewports:
+            start = viewport.start
+            stop = viewport.stop
             range = stop - start
             views.append((start - range, stop + range))
         views.sort()
