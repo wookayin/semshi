@@ -94,15 +94,15 @@ function! semshi#buffer_attach()
     let b:semshi_attached = v:true
     augroup SemshiEvents
         autocmd! * <buffer>
-        autocmd BufEnter <buffer> call SemshiBufEnter(+expand('<abuf>'), line('w0'), line('w$'))
+        autocmd BufEnter <buffer> call SemshiBufEnter(+expand('<abuf>'))
         autocmd BufLeave <buffer> call SemshiBufLeave()
-        autocmd VimResized <buffer> call SemshiVimResized(line('w0'), line('w$'))
+        autocmd VimResized <buffer> call SemshiVimResized()
         autocmd TextChanged <buffer> call SemshiTextChanged()
         autocmd TextChangedI <buffer> call SemshiTextChanged()
-        autocmd CursorMoved <buffer> call SemshiCursorMoved(line('w0'), line('w$'))
-        autocmd CursorMovedI <buffer> call SemshiCursorMoved(line('w0'), line('w$'))
+        autocmd CursorMoved <buffer> call SemshiCursorMoved()
+        autocmd CursorMovedI <buffer> call SemshiCursorMoved()
     augroup END
-    call SemshiBufEnter(bufnr('%'), line('w0'), line('w$'))
+    call SemshiBufEnter(bufnr('%'))
 endfunction
 
 function! semshi#buffer_detach()
