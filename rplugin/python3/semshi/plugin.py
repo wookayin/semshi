@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 import pynvim
 import pynvim.api
 
-from .handler import BufferHandler
+from .handler import BufferHandler, ViewPort
 from .node import hl_groups
 
 # pylint: disable=consider-using-f-string
@@ -94,10 +94,10 @@ class Plugin:
     # buffer handler is completed before other events are handled.
     @pynvim.function('SemshiBufEnter', sync=True)
     def event_buf_enter(self, args):
-        buf_num, view_start, view_stop = args
+        buf_num = args[0]
         self._select_handler(buf_num)
         assert self._cur_handler is not None
-        self._update_viewport(view_start, view_stop)
+        self._update_viewport()
         self._cur_handler.update()
         self._mark_selected()
 
@@ -111,7 +111,7 @@ class Plugin:
 
     @pynvim.function('SemshiVimResized', sync=False)
     def event_vim_resized(self, args):
-        self._update_viewport(*args)
+        self._update_viewport()
         self._mark_selected()
 
     @pynvim.function('SemshiCursorMoved', sync=False)
@@ -121,7 +121,7 @@ class Plugin:
             # we didn't enter it yet.
             self.event_buf_enter((self._vim.current.buffer.number, *args))
             return
-        self._update_viewport(*args)
+        self._update_viewport()
         self._mark_selected()
 
     @pynvim.function('SemshiTextChanged', sync=False)
@@ -182,7 +182,7 @@ class Plugin:
             return
         self._attach_listeners()
         self._select_handler(self._vim.current.buffer)
-        self._update_viewport(*self._vim.eval('[line("w0"), line("w$")]'))
+        self._update_viewport()
         self.highlight()
 
     @subcommand(needs_handler=True)
@@ -296,6 +296,17 @@ class Plugin:
             ]
 
 
+
+    def _update_viewport(self):
+        """Get viewports with self._get_viewports and update them
+
+        Does nothing if handler hasn't been assigned
+        see self._select_handler()
+        """
+        if not self._cur_handler:
+            return
+
+        self._cur_handler.set_viewports(self._get_viewports())
 
     def _mark_selected(self):
         assert self._options is not None, "must have been initialized"
