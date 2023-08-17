@@ -285,9 +285,17 @@ class Plugin:
         else:
             handler.shutdown()
 
-    def _update_viewport(self, start, stop):
-        if self._cur_handler:
-            self._cur_handler.viewport(start, stop)
+    def _get_viewports(self):
+        '''Get all viewports for current buffer
+        '''
+        vim = self._vim
+        buffer_widows = vim.call('win_findbuf', vim.current.buffer.number)
+        return [
+                ViewPort(start=vim.call('line', 'w0', w), end=vim.call('line', 'w$', w))
+                for w in buffer_widows
+            ]
+
+
 
     def _mark_selected(self):
         assert self._options is not None, "must have been initialized"
