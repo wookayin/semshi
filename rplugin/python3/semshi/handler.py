@@ -73,7 +73,7 @@ class BufferHandler:
         views = []
         for viewport in viewports:
             start = viewport.start
-            stop = viewport.stop
+            stop = viewport.end
             range = stop - start
             views.append((start - range, stop + range))
         views.sort()
