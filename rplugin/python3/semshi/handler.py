@@ -119,10 +119,11 @@ class BufferHandler:
         if not self._options.mark_selected_nodes:
             return
         mark_original = bool(self._options.mark_selected_nodes - 1)
-        nodes = self._parser.same_nodes(
+        parser_same_nodes = self._parser.same_nodes(
             cursor, mark_original, self._options.self_to_attribute
         )
-        for node in nodes:
+        nodes = set()
+        for node in parser_same_nodes:
             for start, stop in self._views:
                 if start <= node.lineno <= stop:
                     nodes.add(node)
