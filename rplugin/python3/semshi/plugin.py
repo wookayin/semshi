@@ -262,10 +262,10 @@ class Plugin:
             handler = self._handlers[buffer_number]
         except KeyError:
             if buf is None:
-                buf = self._vim.buffers[buf_num]
+                buf = self._vim.buffers[buf_number]
             assert self._options is not None, "must have been initialized"
             handler = BufferHandler(buf, self._vim, self._options)
-            self._handlers[buf_num] = handler
+            self._handlers[buf_number] = handler
         self._cur_handler = handler
 
     def _remove_handler(self, buf_or_buf_num):
