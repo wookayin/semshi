@@ -183,7 +183,7 @@ class Plugin:
         if self._disabled:
             return
         self._attach_listeners()
-        self._select_and_save_handler(self._vim.current.buffer)
+        self._select_and_save_handler(self._vim.current.buffer.number)
         self._update_viewport()
         self.highlight()
 
