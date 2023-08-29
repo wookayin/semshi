@@ -294,7 +294,7 @@ class Plugin:
         """Get viewports with self._get_viewports and update them
 
         Does nothing if handler hasn't been assigned
-        see self._select_handler()
+        see self._select_and_save_handler()
         """
         if not self._cur_handler:
             return
