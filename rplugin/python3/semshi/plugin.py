@@ -13,7 +13,7 @@ from typing import Optional, cast
 import pynvim
 import pynvim.api
 
-from .handler import BufferHandler, ViewPort
+from .handler import BufferHandler
 from .node import hl_groups
 
 <<<<<<< HEAD
