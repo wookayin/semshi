@@ -72,8 +72,8 @@ class BufferHandler:
         Ensures self._views are sorted"""
         views = []
         for viewport in viewports:
-            start = viewport.start
-            stop = viewport.end
+            start = viewport["start"]
+            stop = viewport["end"]
             range = stop - start
             views.append((start - range, stop + range))
         views.sort()

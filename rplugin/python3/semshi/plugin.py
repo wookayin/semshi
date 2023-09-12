@@ -16,10 +16,12 @@ import pynvim.api
 from .handler import BufferHandler, ViewPort
 from .node import hl_groups
 
+<<<<<<< HEAD
 # pylint: disable=consider-using-f-string
 
+=======
+>>>>>>> bc2c0e0 (avoid roundtrips from python)
 _subcommands = {}
-
 
 def subcommand(func=None, needs_handler=False, silent_fail=True):
     """Decorator to register `func` as a ":Semshi [...]" subcommand.
@@ -99,8 +101,9 @@ class Plugin:
     def event_buf_enter(self, args):
         """Setup handler for current buffer when entering it"""
         assert self._cur_handler is not None
-        self._select_and_save_handler(self._vim.current.buffer.number)
-        self._update_viewport()
+        bufnr, viewports = args
+        self._select_and_save_handler(bufnr)
+        self._update_viewports(viewports)
         self._cur_handler.update()
         self._mark_selected()
 
@@ -114,7 +117,7 @@ class Plugin:
 
     @pynvim.function("SemshiVimResized", sync=False)
     def event_vim_resized(self, args):
-        self._update_viewport()
+        self._update_viewports(*args)
         self._mark_selected()
 
     @pynvim.function("SemshiCursorMoved", sync=False)
@@ -124,7 +127,7 @@ class Plugin:
             # we didn't enter it yet.
             self.event_buf_enter((self._vim.current.buffer.number, *args))
             return
-        self._update_viewport()
+        self._update_viewports(*args)
         self._mark_selected()
 
     @pynvim.function("SemshiTextChanged", sync=False)
@@ -184,7 +187,7 @@ class Plugin:
             return
         self._attach_listeners()
         self._select_and_save_handler(self._vim.current.buffer.number)
-        self._update_viewport()
+        self._update_viewports(self._vim.eval('v:lua._semshi_get_viewports()'))
         self.highlight()
 
     @subcommand(needs_handler=True)
@@ -281,6 +284,7 @@ class Plugin:
         else:
             handler.shutdown()
 
+<<<<<<< HEAD
     def _get_viewports(self):
         """Get all viewports for current buffer"""
         vim = self._vim
@@ -292,6 +296,10 @@ class Plugin:
 
     def _update_viewport(self):
         """Get viewports with self._get_viewports and update them
+=======
+    def _update_viewports(self, viewports):
+        """Send viewports to handler so it can do proper updates
+>>>>>>> bc2c0e0 (avoid roundtrips from python)
 
         Does nothing if handler hasn't been assigned
         see self._select_and_save_handler()
@@ -299,7 +307,7 @@ class Plugin:
         if not self._cur_handler:
             return
 
-        self._cur_handler.set_viewports(self._get_viewports())
+        self._cur_handler.set_viewports(viewports)
 
     def _mark_selected(self):
         assert self._options is not None, "must have been initialized"

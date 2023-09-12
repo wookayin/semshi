@@ -87,6 +87,19 @@ function! s:filetype_changed() abort
     endif
 endfunction
 
+lua<<EOF
+function _G._semshi_get_viewports()
+  local buffer_windows = vim.fn.win_findbuf(vim.fn.bufnr())
+  return vim.tbl_map(function(w)
+    return vim.api.nvim_win_call(w,
+      function()
+        return {start=vim.fn.line("w0"), ['end']=vim.fn.line("w$")}
+      end)
+    end,
+    buffer_windows)
+end
+EOF
+
 function! semshi#buffer_attach()
     if get(b:, 'semshi_attached', v:false)
         return
@@ -94,15 +107,15 @@ function! semshi#buffer_attach()
     let b:semshi_attached = v:true
     augroup SemshiEvents
         autocmd! * <buffer>
-        autocmd BufEnter <buffer> call SemshiBufEnter()
+        autocmd BufEnter <buffer> call SemshiBufEnter(+expand('<abuf>'), v:lua._semshi_get_viewports())
         autocmd BufLeave <buffer> call SemshiBufLeave()
-        autocmd VimResized <buffer> call SemshiVimResized()
+        autocmd VimResized <buffer> call SemshiVimResized(v:lua._semshi_get_viewports())
         autocmd TextChanged <buffer> call SemshiTextChanged()
         autocmd TextChangedI <buffer> call SemshiTextChanged()
-        autocmd CursorMoved <buffer> call SemshiCursorMoved()
-        autocmd CursorMovedI <buffer> call SemshiCursorMoved()
+        autocmd CursorMoved <buffer> call SemshiCursorMoved(v:lua._semshi_get_viewports())
+        autocmd CursorMovedI <buffer> call SemshiCursorMoved(v:lua._semshi_get_viewports())
     augroup END
-    call SemshiBufEnter()
+    call SemshiBufEnter(bufnr('%'), v:lua._semshi_get_viewports())
 endfunction
 
 function! semshi#buffer_detach()
