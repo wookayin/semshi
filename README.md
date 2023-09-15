@@ -29,29 +29,51 @@ In the above example, you can easily distinguish arguments (blue), instance attr
 
   ![Syntax errors](https://i.imgur.com/tCj9myJ.gif)
 
-- Jumping between classes, functions and related names.
+- Jumping between classes, functions and related names. (In modern neovim, using LSP is more recommended.)
 
 ## Installation
 
-- You need Neovim with Python 3 support (`:echo has("python3")`). To install the Python provider run:
+- You need Neovim with Python 3 support (`:echo has("python3")`) with Python >= 3.6. To install the Python provider run:
 
-      pip3 install pynvim --upgrade
+      python3 -m pip install pynvim --upgrade
 
-- Add `wookayin/semshi` via your plugin manager. If you're using [vim-plug](https://github.com/junegunn/vim-plug), add...
+  ...for `python3` as configured in `g:python3_host_prog`. If you don't set this variable, neovim will use `python3` with respect to `$PATH`.
 
+- Add `wookayin/semshi` via your favorite plugin manager.
+
+    - [vim-plug](https://github.com/junegunn/vim-plug):
+      ```vim
       Plug 'wookayin/semshi', { 'do': ':UpdateRemotePlugins' }
+      ```
+      ... and then run `:PlugInstall`.
 
-  ...and run `:PlugInstall`.
+    - [lazy.nvim](https://github.com/folke/lazy.nvim):
+      ```lua
+      {
+        'wookayin/semshi',
+         build = ':UpdateRemotePlugins',
+         init = function()  -- example, skip if you're OK with the default config
+           vim.g['semshi#error_sign'] = false
+         end,
+      }
+      ```
 
-- You may also need to run `:UpdateRemotePlugins` to update the plugin manifest.
+
+
+- Make sure you run `:UpdateRemotePlugins` to update the plugin manifest,
+  whenever the plugin is installed or updated; also when semshi doesn't work (e.g.,
+  [command `:Semshi` not found](https://github.com/numirias/semshi/issues/74),
+  [Unknown function](https://github.com/numirias/semshi/issues/60), etc.)
 
 - Using [deoplete.nvim](https://github.com/Shougo/deoplete.nvim)? [Make sure it doesn't slow down Semshi.](#semshi-is-slow-together-with-deopletenvim)
+
 
 ## Configuration
 
 ### Options
 
-You can set these options in your vimrc (`~/.config/nvim/init.vim`):
+You can set these options in your vimrc (`~/.config/nvim/init.vim`),
+or if you're using [lazy.nvim](https://github.com/folke/lazy.nvim), in the `init` function of the plugin spec:
 
 | Option | Default | Description |
 | --- | --- | --- |
@@ -62,7 +84,7 @@ You can set these options in your vimrc (`~/.config/nvim/init.vim`):
 | `g:semshi#simplify_markup` | `v:true` | Simplify Python markup. Semshi introduces lots of new colors, so this option makes the highlighting of other syntax elements less distracting, binding most of them to `pythonStatement`. If you think Semshi messes with your colorscheme too much, try turning this off. |
 | `g:semshi#error_sign` | `v:true` | Show a sign in the sign column if a syntax error occurred. |
 | `g:semshi#error_sign_delay` | `1.5` | Delay in seconds until the syntax error sign is displayed. (A low delay time may distract while typing.) |
-g:semshi#always_update_all_highlights` | `v:false` | Update all visible highlights for every change. (Semshi tries to detect small changes and update only changed highlights. This can lead to some missing highlights. Turn this on for more reliable highlighting, but a small additional overhead.) |
+| `g:semshi#always_update_all_highlights` | `v:false` | Update all visible highlights for every change. (Semshi tries to detect small changes and update only changed highlights. This can lead to some missing highlights. Turn this on for more reliable highlighting, but a small additional overhead.) |
 | `g:semshi#tolerate_syntax_errors` | `v:true` | Tolerate some minor syntax errors to update highlights even when the syntax is (temporarily) incorrect. (Smoother experience, but comes with some overhead.) |
 | `g:semshi#update_delay_factor` | `0.0` | Factor to delay updating of highlights. Updates will be delayed by `factor * number of lines` seconds. This is useful if instant re-parsing while editing large files stresses your CPU too much. A good starting point may be a factor of `0.0001` (that is, in a file with 1000 lines, parsing will be delayed by 0.1 seconds). |
 | `g:semshi#self_to_attribute` | `v:true` | Prefer the attribute of `self`/`cls` nodes. That is, when selecting the `self` in `self.foo`, Semshi will use the instance attribute `foo` instead. |
@@ -170,7 +192,7 @@ No. Semshi relies on Neovim's fast highlighting API to quickly update lots of hi
 
 ### Is Python 2 supported?
 
-No. [Migrate your code already!](https://pythonclock.org/)
+No. [Migrate your old python code!](https://pythonclock.org/)
 
 We require Python >= 3.6. Regarding old version support, see [#19](https://github.com/numirias/semshi/issues/19) for the original repository's discussion.
 
@@ -186,7 +208,7 @@ Completion triggers may block Semshi from highlighting instantly. Try to increas
 call deoplete#custom#option('auto_complete_delay', 100)
 ```
 
-Or in older (<=5.2) Deoplete versions:
+Or in older (<= 5.2) Deoplete versions:
 
 ```VimL
 let g:deoplete#auto_complete_delay = 100
@@ -202,4 +224,4 @@ As you type code, you introduce temporary syntax errors, e.g. when opening a new
 
 ## Contributing
 
-I absolutely need your help with testing and improving Semshi. If you found a bug or have a suggestion, please don't hesitate to [file an issue](https://github.com/numirias/semshi/issues/new).
+If you found a bug or have a suggestion, please don't hesitate to [file an issue](https://github.com/wookayin/semshi/issues/new).
