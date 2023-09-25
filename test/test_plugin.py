@@ -5,6 +5,9 @@ import pynvim
 import pynvim.api
 import pytest
 
+# pylint: disable=consider-using-f-string
+# pylint: disable=unnecessary-lambda-assignment
+
 
 VIMRC = 'test/data/test.vimrc'
 SLEEP = 0.1
@@ -68,7 +71,8 @@ def start_vim(tmp_path):
     def f(argv=None, file=None):
         if argv is None:
             argv = []
-        argv = ['nvim', '-u', VIMRC, '--embed', '--headless', *argv]
+        argv = ['nvim', '-i', 'NONE', '--embed', '--headless',
+                '-u', VIMRC, *argv]
         vim = pynvim.attach('child', argv=argv)
         if file is not None:
             fn = file or (tmp_path / 'foo.py')
