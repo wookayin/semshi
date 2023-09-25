@@ -43,17 +43,21 @@ In the above example, you can easily distinguish arguments (blue), instance attr
 
     - [vim-plug](https://github.com/junegunn/vim-plug):
       ```vim
-      Plug 'wookayin/semshi', { 'do': ':UpdateRemotePlugins' }
+      Plug 'wookayin/semshi', { 'do': ':UpdateRemotePlugins', 'tag': '*' }
       ```
       ... and then run `:PlugInstall`.
 
     - [lazy.nvim](https://github.com/folke/lazy.nvim):
       ```lua
       {
-        'wookayin/semshi',
-         build = ':UpdateRemotePlugins',
+        "wookayin/semshi",
+         build = ":UpdateRemotePlugins",
+         version = "*",  -- Recommended to use the latest release
          init = function()  -- example, skip if you're OK with the default config
            vim.g['semshi#error_sign'] = false
+         end,
+         config = function()
+           -- any config or setup that would need to be done after plugin loading
          end,
       }
       ```
