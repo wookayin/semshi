@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, cast
 from functools import partial, wraps
 
 import pynvim
@@ -44,7 +44,7 @@ class Plugin:
     handler. (Each buffer is handled by a semshi.BufferHandler instance.)
     """
 
-    def __init__(self, vim):
+    def __init__(self, vim: pynvim.api.Nvim):
         self._vim = vim
         # A mapping (buffer number -> buffer handler)
         self._handlers = {}
@@ -115,12 +115,20 @@ class Plugin:
         for handler in self._handlers.values():
             handler.shutdown()
 
-    @pynvim.command('Semshi', nargs='*', complete='customlist,SemshiComplete',
+    @pynvim.command('Semshi', nargs='*',  # type: ignore
+                    complete='customlist,SemshiComplete',
                     sync=True)
     def cmd_semshi(self, args):
         if not args:
-            self.echo('This is semshi.')
+            filetype = cast(pynvim.api.Buffer, self._vim.current.buffer
+                            ).options.get('filetype')
+            py_filetypes = self._vim.vars.get('semshi#filetypes', [])
+            if filetype in py_filetypes:  # for python buffers
+                self._vim.command('Semshi status')
+            else:  # non-python
+                self.echo('This is semshi.')
             return
+
         try:
             func = _subcommands[args[0]]
         except KeyError:
