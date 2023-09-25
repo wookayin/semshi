@@ -83,7 +83,7 @@ def test_fixable_syntax_errors3():
     """Improved syntax fixing should be able to handle a bad symbol at the
     end of the erroneous line."""
     parser = make_parser('def foo(): x=1-')
-    print(parser.syntax_error.offset)
+    print(parser.syntax_errors[-1].offset)
     assert [n.hl_group for n in parser._nodes] == [LOCAL, LOCAL]
     print(parser._nodes)
     raise NotImplementedError()

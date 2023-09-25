@@ -123,6 +123,21 @@ def test_highlights():
     raise NotImplementedError() # TODO
 
 
+def test_status(vim, tmp_path):
+    """:Semshi status should report a syntax error."""
+    vim.command('edit %s' % (tmp_path / 'foo.py'))
+    vim.current.buffer[:] = ['def():']
+    time.sleep(SLEEP)
+
+    status = vim.command_output('Semshi status')
+    print("\n", status)
+    lines = status.split('\n')
+    assert lines[0] == 'Semshi is attached on (bufnr=1)'
+    assert lines[1] == '- current handler: <BufferHandler(1)>'
+    assert lines[2] == '- handlers: {1: <BufferHandler(1)>}'
+    assert 'invalid syntax' in lines[3]
+
+
 def test_switch_handler(vim, tmp_path):
     """When switching to a different buffer, the current handlers is updated"""
     node_names = lambda: vim.host_eval('[n.name for n in plugin._cur_handler._parser._nodes]')
