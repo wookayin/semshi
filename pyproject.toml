@@ -15,8 +15,3 @@ disable = [
     "too-many-instance-attributes",
     "no-member",
 ]
-
-
-[tool.flake8]
-ignore = "E731,F402,E261,E306,E302,E305,W504"
-exclude = "__init__.py,lib/"
