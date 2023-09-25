@@ -239,7 +239,7 @@ class Visitor:
         target = asname or name
         if target != '*' and '.' not in target:
             guess = 'import ' + name + (' as ' + asname if asname else '')
-            if type(node) == ast.ImportFrom:
+            if isinstance(node, ast.ImportFrom):
                 guess = 'from ' + (node.module or node.level * '.') + ' ' + \
                         guess
             if self._lines[line_idx] == guess:
@@ -408,7 +408,7 @@ class Visitor:
             value_type = type(value)
             if value_type is list:
                 for item in value:
-                    if type(item) == str:
+                    if isinstance(item, str):
                         continue
                     self.visit(item)
             # We would want to use isinstance(value, AST) here. Not sure how
