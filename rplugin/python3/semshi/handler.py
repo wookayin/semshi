@@ -1,3 +1,5 @@
+from typing import Optional
+
 from collections import defaultdict
 import threading
 import time
@@ -244,6 +246,11 @@ class BufferHandler:
             offset + 1,
             ERROR_HL_ID,
         )
+
+    @property
+    def syntax_error(self) -> Optional[SyntaxError]:
+        """Get the current syntax error as string."""
+        return self._parser.syntax_errors[-1]
 
     def _place_sign(self, id, line, name):
         self._wrap_async(self._vim.command)(

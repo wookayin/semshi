@@ -1,3 +1,4 @@
+from typing import Optional
 from functools import partial, wraps
 
 import pynvim
@@ -6,6 +7,7 @@ import pynvim.api
 from .handler import BufferHandler
 from .node import hl_groups
 
+# pylint: disable=consider-using-f-string
 
 _subcommands = {}
 
@@ -47,7 +49,7 @@ class Plugin:
         # A mapping (buffer number -> buffer handler)
         self._handlers = {}
         # The currently active buffer handler
-        self._cur_handler = None
+        self._cur_handler: Optional[BufferHandler] = None
         self._options = None
 
     def _init_with_vim(self):
@@ -72,6 +74,7 @@ class Plugin:
     def event_buf_enter(self, args):
         buf_num, view_start, view_stop = args
         self._select_handler(buf_num)
+        assert self._cur_handler is not None
         self._update_viewport(view_start, view_stop)
         self._cur_handler.update()
         self._mark_selected()
@@ -166,34 +169,50 @@ class Plugin:
 
     @subcommand(needs_handler=True, silent_fail=False)
     def highlight(self):
+        assert self._cur_handler
         self._cur_handler.update(force=True, sync=True)
 
     @subcommand(needs_handler=True)
     def clear(self):
+        assert self._cur_handler
         self._cur_handler.clear_highlights()
 
     @subcommand(needs_handler=True, silent_fail=False)
     def rename(self, new_name=None):
+        assert self._cur_handler
         self._cur_handler.rename(self._vim.current.window.cursor, new_name)
 
     @subcommand(needs_handler=True, silent_fail=False)
     def goto(self, *args, **kwargs):
+        assert self._cur_handler
         self._cur_handler.goto(*args, **kwargs)
 
     @subcommand(needs_handler=True, silent_fail=False)
     def error(self):
+        assert self._cur_handler
         self._cur_handler.show_error()
 
     @subcommand
     def status(self):
-        self.echo(
-            'current handler: {handler}\n'
-            'handlers: {handlers}'
-            .format(
-                handler=self._cur_handler,
-                handlers=self._handlers
-            )
-        )
+        buffer: pynvim.api.Buffer = self._vim.current.buffer
+        attached: bool = buffer.vars.get('semshi_attached', False)
+
+        syntax_error = '(not attached)'
+        if self._cur_handler:
+            syntax_error = str(self._cur_handler.syntax_error or '(none)')
+
+        self.echo('\n'.join([
+            'Semshi is {attached} on (bufnr={bufnr})',
+            '- current handler: {handler}',
+            '- handlers: {handlers}',
+            '- syntax error: {syntax_error}'
+        ]).format(
+            attached=attached and "attached" or "detached",
+            bufnr=str(buffer.number),
+            handler=self._cur_handler,
+            handlers=self._handlers,
+            syntax_error=syntax_error,
+        ))
 
     def _select_handler(self, buf_or_buf_num):
         """Select handler for `buf_or_buf_num`."""
