@@ -1,5 +1,6 @@
 from typing import Optional, cast
 from functools import partial, wraps
+import sys
 
 import pynvim
 import pynvim.api
@@ -46,11 +47,24 @@ class Plugin:
 
     def __init__(self, vim: pynvim.api.Nvim):
         self._vim = vim
+
         # A mapping (buffer number -> buffer handler)
         self._handlers = {}
         # The currently active buffer handler
         self._cur_handler: Optional[BufferHandler] = None
         self._options = None
+
+        # Python version check
+        if (3, 6) <= sys.version_info < (3, 12):
+            self._disabled = False
+        else:
+            self._disabled = True
+            self.echom("Semshi currently supports Python 3.6 - 3.11. " +
+                       "(Current: {})".format(sys.version.split()[0]))
+
+    def echom(self, msg: str):
+        args = ([[msg, "WarningMsg"]], True, {})
+        self._vim.api.echo(*args)
 
     def _init_with_vim(self):
         """Initialize with vim available.
@@ -152,6 +166,8 @@ class Plugin:
 
     @subcommand
     def enable(self):
+        if self._disabled:
+            return
         self._attach_listeners()
         self._select_handler(self._vim.current.buffer)
         self._update_viewport(*self._vim.eval('[line("w0"), line("w$")]'))
@@ -202,6 +218,10 @@ class Plugin:
 
     @subcommand
     def status(self):
+        if self._disabled:
+            self.echo('Semshi is disabled: unsupported python version.')
+            return
+
         buffer: pynvim.api.Buffer = self._vim.current.buffer
         attached: bool = buffer.vars.get('semshi_attached', False)
 
