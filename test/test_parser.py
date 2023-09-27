@@ -4,11 +4,9 @@
 
 import sys
 from pathlib import Path
-import sys
 from textwrap import dedent
 
 import pytest
-
 from semshi.node import (ATTRIBUTE, BUILTIN, FREE, GLOBAL, IMPORTED, LOCAL,
                          PARAMETER, PARAMETER_UNUSED, SELF, UNRESOLVED, Node,
                          group)
@@ -16,10 +14,13 @@ from semshi.parser import Parser, UnparsableError
 
 from .conftest import make_parser, make_tree, parse
 
-
 # top-level functions are parsed as LOCAL in python<3.7,
 # but as GLOBAL in Python 3.8.
 MODULE_FUNC = GLOBAL if sys.version_info >= (3, 8) else LOCAL
+
+# Python 3.12: comprehensions no longer have their own variable scopes
+# https://peps.python.org/pep-0709/
+PEP_709 = sys.version_info >= (3, 12)
 
 
 def test_group():
@@ -154,18 +155,47 @@ def test_name_len():
 def test_comprehension_scopes():
     names = parse(r'''
         #!/usr/bin/env python3
-        [a for b in c]
-        (d for e in f)
+        (a for b in c)
+        [d for e in f]
         {g for h in i}
         {j:k for l in m}
     ''')
     root = make_tree(names)
-    assert root['names'] == ['c', 'f', 'i', 'm']
-    assert root['listcomp']['names'] == ['a', 'b']
-    assert root['genexpr']['names'] == ['d', 'e']
-    assert root['setcomp']['names'] == ['g', 'h']
-    assert root['dictcomp']['names'] == ['j', 'k', 'l']
+    groups = {n.name: n.hl_group for n in names}
+    print(f"root = {root}")
+    print(f"groups = {groups}")
 
+    if not PEP_709:
+        assert root['names'] == ['c', 'f', 'i', 'm']
+        assert root['genexpr']['names'] == ['a', 'b']
+        assert root['listcomp']['names'] == ['d', 'e']
+        assert root['setcomp']['names'] == ['g', 'h']
+        assert root['dictcomp']['names'] == ['j', 'k', 'l']
+
+        # generator variables b, e, h, l are local within the scope
+        assert [name for name, group in groups.items() if group == LOCAL
+                ] == ['b', 'e', 'h', 'l']
+        assert [name for name, group in groups.items() if group == UNRESOLVED
+                ] == ['c', 'a', 'f', 'd', 'i', 'g', 'm', 'j', 'k']
+
+    else:
+        # PEP-709, Python 3.12+: comprehensions do not have scope of their own.
+        # so all the symbol is contained in the root node (ast.Module)
+        assert root['names'] == [
+            # in the order nodes are visited and evaluated
+            'c',  # generators have nested scope !!!
+            'f', 'd', 'e',
+            'i', 'g', 'h',
+            'm', 'j', 'k', 'l'
+        ]
+        # no comprehension children nodes
+        assert list(root.keys()) == ['names', 'genexpr']
+
+        # generator variables e, h, l have the scope of the top-level module
+        assert [name for name, group in groups.items() if group == GLOBAL
+                ] == ['e', 'h', 'l']   # b is defined within the generator scope
+        assert [name for name, group in groups.items() if group == UNRESOLVED
+                ] == ['c', 'a', 'f', 'd', 'i', 'g', 'm', 'j', 'k']
 
 def test_function_scopes():
     names = parse(r'''
@@ -177,10 +207,15 @@ def test_function_scopes():
         func(x, y=p, **z)
     ''')
     root = make_tree(names)
+    print(f"root = {root}")
+
     assert root['names'] == [
-        'e', 'h', 'func', 'k', 'func2', 'func', 'x', 'p', 'z'
+        'e', 'h',
+        *(['g', 'g'] if PEP_709 else []),
+        'func', 'k', 'func2', 'func', 'x', 'p', 'z'
     ]
-    assert root['listcomp']['names'] == ['g', 'g']
+    if not PEP_709:
+        assert root['listcomp']['names'] == ['g', 'g']
     assert root['func']['names'] == ['a', 'b', 'c', 'd', 'f', 'i']
     assert root['func2']['names'] == ['j']
 
@@ -385,11 +420,21 @@ def test_nested_comprehension():
         [o for p, q, r in s]
     ''')
     root = make_tree(names)
-    assert root['names'] == ['c', 'n', 's']
-    assert root['listcomp']['names'] == [
-        'a', 'b', 'd', 'e', 'f', 'g', 'l', 'm', 'z', 'k', 'h', 'i', 'o', 'p',
-        'q', 'r'
-    ]
+    if not PEP_709:
+        assert root['names'] == ['c', 'n', 's']
+        assert root['listcomp']['names'] == [
+            'a', 'b', 'd', 'e', 'f', 'g', 'l', 'm', 'z', 'k', 'h', 'i', 'o', 'p',
+            'q', 'r'
+        ]
+    else:
+        # Python 3.12: all the 18 symbols are included in the root scope
+        assert root['names'] == [
+            *['c', 'a', 'b'], *['d', 'e', 'f', 'g'],
+            *['n', 'l', 'm'], *['z', 'x', 'y'], 'k', 'h', 'i',
+            *['s', 'o', 'p', 'q', 'r']
+        ]
+        assert 'listcomp' not in root
+
 
 def test_try_except_order():
     names = parse(r'''
@@ -847,7 +892,7 @@ def test_unused_args2():
     ''')
     assert [n.hl_group for n in names if n.name == 'x'] == [
         PARAMETER,
-        FREE
+        PARAMETER if PEP_709 else FREE
     ]
 
 

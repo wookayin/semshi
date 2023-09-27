@@ -8,10 +8,21 @@ from tokenize import tokenize
 from .node import ATTRIBUTE, IMPORTED, PARAMETER_UNUSED, SELF, Node
 from .util import debug_time
 
-# Node types which introduce a new scope
-BLOCKS = (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef,
-          ast.ListComp, ast.DictComp, ast.SetComp,
-          ast.GeneratorExp, ast.Lambda)
+# Node types which introduce a new scope and child symboltable
+BLOCKS = (
+    ast.Module, ast.Lambda,
+    ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef,
+    ast.GeneratorExp,
+)
+if sys.version_info < (3, 12):
+    # PEP-709: comprehensions no longer have dedicated stack frames; the
+    # comprehension's local will be included in the parent function's symtable
+    # (Note: generator expressions are excluded in Python 3.12)
+    BLOCKS = tuple(
+        list(BLOCKS) +
+        [ast.ListComp, ast.DictComp, ast.SetComp]
+    )
+
 FUNCTION_BLOCKS = (ast.FunctionDef, ast.Lambda, ast.AsyncFunctionDef)
 
 # Node types which don't require any action
@@ -83,6 +94,7 @@ class Visitor:
             return
         if type_ in SKIP:
             return
+
         if type_ is ast.Try:
             self._visit_try(node)
         elif type_ is ast.ExceptHandler:
