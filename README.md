@@ -1,7 +1,7 @@
 # Semshi (A maintained fork)
 
 [![Build Status](https://github.com/wookayin/semshi/actions/workflows/ci.yml/badge.svg)](https://github.com/wookayin/semshi/actions)
-![Python Versions](https://img.shields.io/badge/python-3.6,%203.7,%203.8,%203.9,%203.10,%203.11-blue.svg)
+![Python Versions](https://img.shields.io/badge/python-3.7,%203.8,%203.9,%203.10,%203.11-blue.svg)
 
 <!--[![codecov](https://codecov.io/gh/numirias/semshi/branch/master/graph/badge.svg)](https://codecov.io/gh/numirias/semshi)-->
 
@@ -33,11 +33,13 @@ In the above example, you can easily distinguish arguments (blue), instance attr
 
 ## Installation
 
-- You need Neovim with Python 3 support (`:echo has("python3")`) with Python >= 3.6. To install the Python provider run:
+- You need Neovim with Python 3 support (`:echo has("python3")`) with Python >= 3.7. To install the Python provider run:
 
       python3 -m pip install pynvim --upgrade
 
   ...for `python3` as configured in `g:python3_host_prog`. If you don't set this variable, neovim will use `python3` with respect to `$PATH`.
+
+    - Note: Python 3.6 support has been dropped. If you have to use Python 3.6, use the v0.2.0 version.
 
 - Add `wookayin/semshi` via your favorite plugin manager.
 
