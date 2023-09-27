@@ -1,11 +1,14 @@
-import os
+"""Unit Tests for semshi.parser"""
+
+# pylint: disable=protected-access
+
+import sys
 from pathlib import Path
 import sys
 from textwrap import dedent
 
 import pytest
 
-from semshi import parser
 from semshi.node import (ATTRIBUTE, BUILTIN, FREE, GLOBAL, IMPORTED, LOCAL,
                          PARAMETER, PARAMETER_UNUSED, SELF, UNRESOLVED, Node,
                          group)
@@ -58,22 +61,22 @@ def test_syntax_error_fail2():
 
 def test_fixable_syntax_errors():
     """Test syntax errors where we can tokenize the erroneous line."""
-    names = parse('''
-    a  a = b in
-    c
+    names = parse(r'''
+        a  a = b in
+        c
     ''')
     assert [n.pos for n in names] == [(2, 0), (2, 3), (2, 7), (3, 0)]
 
 
 def test_fixable_syntax_errors2():
     """Test syntax errors where we can tokenize the last modified line."""
-    parser = make_parser('''
-    a
-    b
+    parser = make_parser(r'''
+        a
+        b
     ''')
-    parser.parse(dedent('''
-    c(
-    b
+    parser.parse(dedent(r'''
+        c(
+        b
     '''))
     assert {n.name for n in parser._nodes} == {'c', 'b'}
 
@@ -149,11 +152,12 @@ def test_name_len():
 
 
 def test_comprehension_scopes():
-    names = parse('''
-    [a for b in c]
-    (d for e in f)
-    {g for h in i}
-    {j:k for l in m}
+    names = parse(r'''
+        #!/usr/bin/env python3
+        [a for b in c]
+        (d for e in f)
+        {g for h in i}
+        {j:k for l in m}
     ''')
     root = make_tree(names)
     assert root['names'] == ['c', 'f', 'i', 'm']
@@ -164,12 +168,13 @@ def test_comprehension_scopes():
 
 
 def test_function_scopes():
-    names = parse('''
-    def func(a, b, *c, d=e, f=[g for g in h], **i):
-        pass
-    def func2(j=k):
-        pass
-    func(x, y=p, **z)
+    names = parse(r'''
+        #!/usr/bin/env python3
+        def func(a, b, *c, d=e, f=[g for g in h], **i):
+            pass
+        def func2(j=k):
+            pass
+        func(x, y=p, **z)
     ''')
     root = make_tree(names)
     assert root['names'] == [
@@ -181,35 +186,37 @@ def test_function_scopes():
 
 
 def test_class_scopes():
-    names = parse('''
-    a = 1
-    class A(x, y=z):
-        a = 2
-        def f():
-            a
+    names = parse(r'''
+        #!/usr/bin/env python3
+        a = 1
+        class A(x, y=z):
+            a = 2
+            def f():
+                a
     ''')
     root = make_tree(names)
     assert root['names'] == ['a', 'A', 'x', 'z']
 
 
 def test_import_scopes_and_positions():
-    names = parse('''
-    import aa
-    import BB as cc
-    from DD import ee
-    from FF.GG import hh
-    import ii.jj
-    import kk, ll
-    from MM import NN as oo
-    from PP import *
-    import qq, RR as tt, UU as vv
-    from WW import xx, YY as zz
-    import aaa; import bbb
-    from CCC import (ddd,
-    eee)
-    import FFF.GGG as hhh
-    from III.JJJ import KKK as lll
-    import mmm.NNN.OOO, ppp.QQQ
+    names = parse(r'''
+        #!/usr/bin/env python3
+        import aa
+        import BB as cc
+        from DD import ee
+        from FF.GG import hh
+        import ii.jj
+        import kk, ll
+        from MM import NN as oo
+        from PP import *
+        import qq, RR as tt, UU as vv
+        from WW import xx, YY as zz
+        import aaa; import bbb
+        from CCC import (ddd,
+        eee)
+        import FFF.GGG as hhh
+        from III.JJJ import KKK as lll
+        import mmm.NNN.OOO, ppp.QQQ
     ''')
     root = make_tree(names)
     assert root['names'] == [
@@ -217,41 +224,42 @@ def test_import_scopes_and_positions():
         'zz', 'aaa', 'bbb', 'ddd', 'eee', 'hhh', 'lll', 'mmm', 'ppp'
     ]
     assert [(name.name,) + name.pos for name in names] == [
-        ('aa', 2, 7),
-        ('cc', 3, 13),
-        ('ee', 4, 15),
-        ('hh', 5, 18),
-        ('ii', 6, 7),
-        ('kk', 7, 7),
-        ('ll', 7, 11),
-        ('oo', 8, 21),
-        ('qq', 10, 7),
-        ('tt', 10, 17),
-        ('vv', 10, 27),
-        ('xx', 11, 15),
-        ('zz', 11, 25),
-        ('aaa', 12, 7),
-        ('bbb', 12, 19),
-        ('ddd', 13, 17),
-        ('eee', 14, 0),
-        ('hhh', 15, 18),
-        ('lll', 16, 27),
-        ('mmm', 17, 7),
-        ('ppp', 17, 20),
+        ('aa', 3, 7),
+        ('cc', 4, 13),
+        ('ee', 5, 15),
+        ('hh', 6, 18),
+        ('ii', 7, 7),
+        ('kk', 8, 7),
+        ('ll', 8, 11),
+        ('oo', 9, 21),
+        ('qq', 11, 7),
+        ('tt', 11, 17),
+        ('vv', 11, 27),
+        ('xx', 12, 15),
+        ('zz', 12, 25),
+        ('aaa', 13, 7),
+        ('bbb', 13, 19),
+        ('ddd', 14, 17),
+        ('eee', 15, 0),
+        ('hhh', 16, 18),
+        ('lll', 17, 27),
+        ('mmm', 18, 7),
+        ('ppp', 18, 20),
     ]
 
 
 def test_multibyte_import_positions():
-    names = parse('''
-    import aaa, bbb
-    import äää, ööö
-    aaa; import bbb, ccc
-    äää; import ööö, üüü
-    import äää; import ööö, üüü; from äää import ööö; import üüü as äää
-    from x import (
-        äää, ööö
-    )
-    from foo \
+    names = parse(r'''
+        #!/usr/bin/env python3
+        import aaa, bbb
+        import äää, ööö
+        aaa; import bbb, ccc
+        äää; import ööö, üüü
+        import äää; import ööö, üüü; from äää import ööö; import üüü as äää
+        from x import (
+            äää, ööö
+        )
+        from foo \
             import äää
     ''')
     positions = [(n.col, n.end) for n in names]
@@ -262,30 +270,31 @@ def test_multibyte_import_positions():
         (0, 6), (15, 21), (23, 29),
         (7, 13), (22, 28), (30, 36), (57, 63), (82, 88),
         (4, 10), (12, 18),
-        (28, 34),
+        (11, 17),  # note the line continuation
     ]
 
 def test_name_mangling():
     """Leading double underscores can lead to a different symbol name."""
-    names = parse('''
-    __foo = 1
-    class A:
-        __foo
-        class B:
+    names = parse(r'''
+        #!/usr/bin/env python3
+        __foo = 1
+        class A:
             __foo
-            def f():
+            class B:
                 __foo
-        class __C:
-            pass
-    class _A:
-        def f():
-            __x
-    class _A_:
-        def f():
-            __x
-    class ___A_:
-        def f():
-            __x
+                def f():
+                    __foo
+            class __C:
+                pass
+        class _A:
+            def f():
+                __x
+        class _A_:
+            def f():
+                __x
+        class ___A_:
+            def f():
+                __x
     ''')
     root = make_tree(names)
     assert root['names'] == ['__foo', 'A', '_A', '_A_', '___A_']
@@ -299,23 +308,24 @@ def test_name_mangling():
 
 def test_self_param():
     """If self/cls appear in a class, they must have a speical group."""
-    names = parse('''
-    self
-    def x(self):
-        pass
-    class Foo:
+    names = parse(r'''
+        #!/usr/bin/env python3
+        self
         def x(self):
             pass
-            def y():
-                self
-            def z(self):
-                self
-        def a(foo, self):
-            pass
-        def b(foo, cls):
-            pass
-        def c(cls, foo):
-            pass
+        class Foo:
+            def x(self):
+                pass
+                def y():
+                    self
+                def z(self):
+                    self
+            def a(foo, self):
+                pass
+            def b(foo, cls):
+                pass
+            def c(cls, foo):
+                pass
     ''')
     groups = [n.hl_group for n in names if n.name in ['self', 'cls']]
     assert [PARAMETER if g is PARAMETER_UNUSED else g for g in groups] == [
@@ -325,22 +335,24 @@ def test_self_param():
 
 
 def test_self_with_decorator():
-    names = parse('''
-    class Foo:
-        @decorator(lambda k: k)
-        def x(self):
-            self
-    ''')
+    names = parse(r'''
+        #!/usr/bin/env python3
+        class Foo:
+            @decorator(lambda k: k)
+            def x(self):
+                self
+        ''')
     assert names[-1].hl_group == SELF
 
 
 def test_self_target():
     """The target of a self with an attribute should be the attribute node."""
-    parser = make_parser('''
-    self.abc
-    class Foo:
-        def x(self):
-            self.abc
+    parser = make_parser(r'''
+        #!/usr/bin/env python3
+        self.abc
+        class Foo:
+            def x(self):
+                self.abc
     ''')
     names = parser._nodes
     assert names[0].target is None
@@ -356,19 +368,21 @@ def test_unresolved_name():
     assert names[1].hl_group == UNRESOLVED
 
 def test_imported_names():
-    names = parse('''
-    import foo
-    import abs
-    foo, abs
+    names = parse(r'''
+        #!/usr/bin/env python3
+        import foo
+        import abs
+        foo, abs
     ''')
     assert [n.hl_group for n in names] == [IMPORTED] * 4
 
 
 def test_nested_comprehension():
-    names = parse('''
-    [a for b in c for d in e for f in g]
-    [h for i in [[x for y in z] for k in [l for m in n]]]
-    [o for p, q, r in s]
+    names = parse(r'''
+        #!/usr/bin/env python3
+        [a for b in c for d in e for f in g]
+        [h for i in [[x for y in z] for k in [l for m in n]]]
+        [o for p, q, r in s]
     ''')
     root = make_tree(names)
     assert root['names'] == ['c', 'n', 's']
@@ -378,19 +392,20 @@ def test_nested_comprehension():
     ]
 
 def test_try_except_order():
-    names = parse('''
-    try:
-        def A():
-            a
-    except ImportError:
-        def B():
-            b
-    else:
-        def C():
-            c
-    finally:
-        def D():
-            d
+    names = parse(r'''
+        #!/usr/bin/env python3
+        try:
+            def A():
+                a
+        except ImportError:
+            def B():
+                b
+        else:
+            def C():
+                c
+        finally:
+            def D():
+                d
     ''')
     root = make_tree(names)
     assert root['A']['names'] == ['a']
@@ -406,34 +421,32 @@ def test_except_as():
 
 
 def test_global_nonlocal():
-    names = parse('''
-    global ä, ää, \
-    b
-    def foo():
-        c = 1
-        def bar():
-            nonlocal c
+    names = parse(r'''
+        #!/usr/bin/env python3
+        global ä, ää, \
+        b                # Line 4
+        def foo():       # Line 5
+            c = 1
+            def bar():   # Line 7
+                nonlocal c
     ''')
     print([(n.name, n.pos) for n in names])
     assert [(n.name, n.pos) for n in names] == [
-        ('ä', (2, 7)),
-        ('ää', (2, 11)),
-        # Note: We take advantage of the fact that adding a highlight
-        # exceeding the line length also automatically wraps, so (2, 21) is a
-        # valid position although the position of "b" in the buffer is
-        # actually (3, 0).
-        ('b', (2, 21)),
-        ('foo', (3, 4)),
-        ('c', (4, 4)),
-        ('bar', (5, 8)),
-        ('c', (6, 17)),
+        ('ä', (3, 7)),
+        ('ää', (3, 11)),
+        ('b', (4, 0)),
+        ('foo', (5, 4)),
+        ('c', (6, 4)),
+        ('bar', (7, 8)),
+        ('c', (8, 17)),
     ]
 
 
 def test_lambda():
-    names = parse('''
-    lambda a: b
-    lambda x=y: z
+    names = parse(r'''
+        #!/usr/bin/env python3
+        lambda a: b
+        lambda x=y: z
     ''')
     root = make_tree(names)
     assert root['lambda']['names'] == ['a', 'b', 'x', 'z']
@@ -458,11 +471,12 @@ def test_fstrings_offsets():
 
 
 def test_type_hints():
-    names = parse('''
-    def f(a:A, b, *c:C, d:D=dd, **e:E) -> z:
-        pass
-    async def f2(x:X=y):
-        pass
+    names = parse(r'''
+        #!/usr/bin/env python3
+        def f(a:A, b, *c:C, d:D=dd, **e:E) -> z:
+            pass
+        async def f2(x:X=y):
+            pass
     ''')
     root = make_tree(names)
     assert root['names'] == [
@@ -471,15 +485,16 @@ def test_type_hints():
 
 
 def test_decorator():
-    names = parse('''
-    @d1(a, b=c)
-    class A: pass
-    @d2(x, y=z)
-    def B():
-        pass
-    @d3
-    async def C():
-        pass
+    names = parse(r'''
+        #!/usr/bin/env python3
+        @d1(a, b=c)
+        class A: pass
+        @d2(x, y=z)
+        def B():
+            pass
+        @d3
+        async def C():
+            pass
     ''')
     root = make_tree(names)
     assert root['names'] == [
@@ -489,79 +504,85 @@ def test_decorator():
 def test_global_builtin():
     """A builtin name assigned globally should be highlighted as a global, not
     a builtin."""
-    names = parse('''
-    len
-    set = 1
-    def foo(): set, str
+    names = parse(r'''
+        #!/usr/bin/env python3
+        len
+        set = 1
+        def foo(): set, str
     ''')
     assert names[0].hl_group == BUILTIN
     assert names[-2].hl_group == GLOBAL
     assert names[-1].hl_group == BUILTIN
 
 def test_global_statement():
-    names = parse('''
-    x = 1
-    def foo():
-        global x
-        x
+    names = parse(r'''
+        #!/usr/bin/env python3
+        x = 1
+        def foo():
+            global x
+            x
     ''')
     assert names[-1].hl_group == GLOBAL
 
 
 def test_positions():
-    names = parse('''
-    a = 1
-    def func(x=y):
-        b = 2
+    names = parse(r'''
+        #!/usr/bin/env python3
+        a = 1             # Line 3
+        def func(x=y):    # Line 4
+            b = 2
     ''')
     assert [(name.name,) + name.pos for name in names] == [
-        ('a', 2, 0),
-        ('y', 3, 11),
-        ('func', 3, 4),
-        ('x', 3, 9),
-        ('b', 4, 4),
+        ('a', 3, 0),
+        ('y', 4, 11),
+        ('func', 4, 4),
+        ('x', 4, 9),
+        ('b', 5, 4),
     ]
 
 
 def test_class_and_function_positions():
+    # Note: did not use r''' to use literal '\t'
     names = parse('''
-    def aaa(): pass
-    async def bbb(): pass
-    async  def  ccc(): pass
-    class ddd(): pass
-    class \t\f eee(): pass
-    class \\
-            \\
-      ggg: pass
-    @deco
-    @deco2
-    @deco3
-    class hhh():
-        def foo():
-            pass
+        #!/usr/bin/env python3
+        def aaa(): pass              # Line 3
+        async def bbb(): pass
+        async  def  ccc(): pass
+        class ddd(): pass
+        class \t\f eee(): pass       # Line 7
+        class \\
+                \\
+          ggg: pass                  # Line 10
+        @deco
+        @deco2
+        @deco3
+        class hhh():                 # Line 14
+            def foo():
+                pass
     ''')
     assert [name.pos for name in names] == [
-        (2, 4),
-        (3, 10),
-        (4, 12),
-        (5, 6),
-        (6, 9),
-        (9, 2),
-        (10, 1),
-        (11, 1),
-        (12, 1),
-        (13, 6),
-        (14, 8),
+        (3, 4),  # aaa
+        (4, 10),  # bbb
+        (5, 12),  # ccc
+        (6, 6),  # ddd
+        (7, 9),  # eee
+        (10, 2),  # ggg
+        (11, 1),  # deco
+        (12, 1),  # deco 2
+        (13, 1),  # deco 3
+        (14, 6),  # hhh
+        (15, 8),  # foo
     ]
 
 
 def test_same_nodes():
-    parser = make_parser('''
-    x = 1
-    class A:
-        x
-        def B():
+    parser = make_parser(r'''
+        #!/usr/bin/env python3
+        x = 1
+        class A:
             x
+            def B():
+                x
     ''')
     names = parser._nodes
     x, A, A_x, B, B_x = names
@@ -570,13 +591,14 @@ def test_same_nodes():
 
 
 def test_base_scope_global():
-    parser = make_parser('''
-    x = 1
-    def a():
-        x = 2
-        def b():
-            global x
-            x
+    parser = make_parser(r'''
+        #!/usr/bin/env python3
+        x = 1
+        def a():
+            x = 2
+            def b():
+                global x
+                x
     ''')
     names = parser._nodes
     x, a, a_x, b, b_global_x, b_x = names
@@ -585,11 +607,12 @@ def test_base_scope_global():
 
 
 def test_base_scope_free():
-    parser = make_parser('''
-    def a():
-        x = 1
-        def b():
-            x
+    parser = make_parser(r'''
+        #!/usr/bin/env python3
+        def a():
+            x = 1
+            def b():
+                x
     ''')
     names = parser._nodes
     a, a_x, b, b_x = names
@@ -598,10 +621,11 @@ def test_base_scope_free():
 
 
 def test_base_scope_class():
-    parser = make_parser('''
-    class A:
-        x = 1
-        x
+    parser = make_parser(r'''
+        #!/usr/bin/env python3
+        class A:
+            x = 1
+            x
     ''')
     names = parser._nodes
     A, x1, x2 = names
@@ -610,13 +634,14 @@ def test_base_scope_class():
 
 
 def test_base_scope_class_nested():
-    parser = make_parser('''
-    def z():
-        x = 1
-        class A():
-            x = 2
-            def b():
-                return x
+    parser = make_parser(r'''
+        #!/usr/bin/env python3
+        def z():
+            x = 1
+            class A():
+                x = 2
+                def b():
+                    return x
     ''')
     names = parser._nodes
     z, z_x, A, A_x, b, b_x = names
@@ -625,36 +650,38 @@ def test_base_scope_class_nested():
 
 
 def test_base_scope_nonlocal_free():
-    parser = make_parser('''
-    def foo():
-        a = 1
-        def bar():
-            nonlocal a
+    parser = make_parser(r'''
+        #!/usr/bin/env python3
+        def foo():
             a = 1
+            def bar():
+                nonlocal a
+                a = 1
     ''')
     foo, foo_a, bar, bar_nonlocal_a, bar_a = parser._nodes
     assert set(parser.same_nodes(foo_a)) == {foo_a, bar_nonlocal_a, bar_a}
 
 
 def test_attributes():
-    parser = make_parser('''
-    aa.bb
-    cc.self.dd
-    self.ee
-    def a(self):
-        self.ff
-    class A:
-        def b(self):
-            self.gg
-    class B:
-        def c(self):
-            self.gg
-        def d(self):
-            self.gg
-        def e(self):
-            self.hh
-        def f(foo):
-            self.gg
+    parser = make_parser(r'''
+        #!/usr/bin/env python3
+        aa.bb
+        cc.self.dd
+        self.ee
+        def a(self):
+            self.ff
+        class A:
+            def b(self):
+                self.gg
+        class B:
+            def c(self):
+                self.gg
+            def d(self):
+                self.gg
+            def e(self):
+                self.hh
+            def f(foo):
+                self.gg
     ''')
     names = parser._nodes
     names = [n for n in names if n.hl_group == ATTRIBUTE]
@@ -675,10 +702,11 @@ def test_same_nodes_empty():
 
 
 def test_same_nodes_use_target():
-    parser = make_parser('''
-    class Foo:
-        def foo(self):
-            self.x, self.x
+    parser = make_parser(r'''
+        #!/usr/bin/env python3
+        class Foo:
+            def foo(self):
+                self.x, self.x
     ''')
     node = parser._nodes[-1]
     assert [
@@ -692,41 +720,41 @@ def test_same_nodes_use_target():
 def test_refresh_names():
     """Clear everything if more than one line changes."""
     parser = Parser()
-    add, clear = parser.parse(dedent('''
-    def foo():
-        x = y
+    add, clear = parser.parse(dedent(r'''
+        def foo():
+            x = y
     '''))
     assert len(add) == 3
     assert len(clear) == 0
-    add, clear = parser.parse(dedent('''
-    def foo():
-        x = y
+    add, clear = parser.parse(dedent(r'''
+        def foo():
+            x = y
     '''))
     assert len(add) == 0
     assert len(clear) == 0
-    add, clear = parser.parse(dedent('''
-    def foo():
-        z = y
+    add, clear = parser.parse(dedent(r'''
+        def foo():
+            z = y
     '''))
     assert len(add) == 1
     assert len(clear) == 1
-    add, clear = parser.parse(dedent('''
-    def foo():
-        z = y
+    add, clear = parser.parse(dedent(r'''
+        def foo():
+            z = y
         a, b
     '''))
     assert len(add) == 5
     assert len(clear) == 3
-    add, clear = parser.parse(dedent('''
-    def foo():
-        z = y
+    add, clear = parser.parse(dedent(r'''
+        def foo():
+            z = y
         c, d
     '''))
     assert len(add) == 2
     assert len(clear) == 2
-    add, clear = parser.parse(dedent('''
-    def foo():
-        z = y, k
+    add, clear = parser.parse(dedent(r'''
+        def foo():
+            z = y, k
         1, 1
     '''))
     assert len(add) == 4
@@ -735,38 +763,38 @@ def test_refresh_names():
 
 def test_exclude_types():
     parser = Parser(exclude=[LOCAL])
-    add, clear = parser.parse(dedent('''
-    a = 1
-    def f():
-        b, c = 1
-        a + b
+    add, clear = parser.parse(dedent(r'''
+        a = 1
+        def f():
+            b, c = 1
+            a + b
     '''))
     # Python <= 3.7 parses 'a = 1' as the only GLOBAL,
     # but Python >= 3.8 parses three GLOBALS (a, f, a).
     # assert [n.name for n in add] == ['a']
     assert all(n.hl_group != LOCAL for n in add)
     assert clear == []
-    add, clear = parser.parse(dedent('''
-    a = 1
-    def f():
-        b, c = 1
-        a + c
+    add, clear = parser.parse(dedent(r'''
+        a = 1
+        def f():
+            b, c = 1
+            a + c
     '''))
     assert add == []
     assert clear == []
-    add, clear = parser.parse(dedent('''
-    a = 1
-    def f():
-        b, c = 1
-        g + c
+    add, clear = parser.parse(dedent(r'''
+        a = 1
+        def f():
+            b, c = 1
+            g + c
     '''))
     assert [n.name for n in add] == ['g']
     assert [n.name for n in clear] == ['a']
-    add, clear = parser.parse(dedent('''
-    a = 1
-    def f():
-        b, c = 1
-        0 + c
+    add, clear = parser.parse(dedent(r'''
+        a = 1
+        def f():
+            b, c = 1
+            0 + c
     '''))
     assert add == []
     assert [n.name for n in clear] == ['g']
@@ -786,10 +814,11 @@ def test_make_nodes():
 
 
 def test_unused_args():
-    names = parse('''
-    def foo(a, b, c, d=1): a, c
-    lambda x: 1
-    async def bar(y): pass
+    names = parse(r'''
+        #!/usr/bin/env python3
+        def foo(a, b, c, d=1): a, c
+        lambda x: 1
+        async def bar(y): pass
     ''')
     assert [n.hl_group for n in names] == [
         # foo        a          b                 c          d
@@ -803,12 +832,22 @@ def test_unused_args():
 
 def test_unused_args2():
     """Detect unused args in nested scopes correctly."""
-    names = parse('''
-    def foo(x): lambda: x
-    def foo(x): [[x for a in b] for y in z]
+    names = parse(r'''
+        #!/usr/bin/env python3
+        def foo(x): lambda: x
     ''')
-    assert [n.hl_group for n in names if n.name =='x'] == [
-        PARAMETER, FREE, PARAMETER, FREE
+    assert [n.hl_group for n in names if n.name == 'x'] == [
+        PARAMETER, FREE,
+    ]
+
+    names = parse(r'''
+        #!/usr/bin/env python3
+        def foo(x):
+            [[x for a in b] for y in z]
+    ''')
+    assert [n.hl_group for n in names if n.name == 'x'] == [
+        PARAMETER,
+        FREE
     ]
 
 
@@ -833,22 +872,25 @@ def test_postponed_evaluation_of_annotations_pep563(enable_pep563):
     """Tests parsers with __future__ import annotations (PEP 563)."""
     # see https://peps.python.org/pep-0563/
     # see https://github.com/numirias/semshi/issues/116
-    names = parse('\n'.join([
-        'from __future__ import annotations' if enable_pep563 else '',
+    names = parse(
+        ('from __future__ import annotations' if enable_pep563 else '') +
+        dedent(r'''
+        #!/usr/bin/env python3
+
         # globals
-        'from typing import List, Any, Dict',
-        'a: int = 1',  # builtins
-        'b: UnknownSymbol = 2',  # non-builtins
-        'c: List[Any] = []',  # imported
-        '',
+        from typing import List, Any, Dict
+        a: int = 1  # builtins
+        b: UnknownSymbol = 2  # non-builtins
+        c: List[Any] = []  # imported
+
         # nested scope and symtable
-        'def foo():',
-        '   local_var: List[Any] = []',  # local variables
-        'class Foo:',
-        '   attr: List[Any] = ()',  # class attributes
-        '   def __init__(self, v: Optional[List[Any]], built_in: int) -> Dict:'
-        '       temp: Any = built_in'
-    ]))
+        def foo():
+           local_var: List[Any] = []  # local variables
+        class Foo:
+           attr: List[Any] = ()  # class attributes
+           def __init__(self, v: Optional[List[Any]], built_in: int) -> Dict:
+               temp: Any = built_in
+        '''))
     expected = [
         ('annotations', IMPORTED) if enable_pep563 else (),
         ('List', IMPORTED), ('Any', IMPORTED), ('Dict', IMPORTED),
@@ -874,7 +916,7 @@ def test_postponed_evaluation_of_annotations_pep563(enable_pep563):
 def test_postponed_evaluation_of_annotations_pep563_resolution(request):
     """Additional tests for PEP 563. The code is from the PEP-563 document."""
     path = Path(request.fspath.dirname) / 'data/pep-0563-annotations.py'
-    with open(str(path)) as f:
+    with open(str(path), encoding="utf-8") as f:
         names = parse(f.read())
 
     # print('\n' + '\n'.join(repr(n) for n in names))
