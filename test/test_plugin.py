@@ -354,6 +354,9 @@ def test_rename(start_vim):
 
 def test_goto(start_vim):
     vim = start_vim(file='')
+    def cursor_loc_at(loc):
+        return lambda: tuple(vim.current.window.cursor) == tuple(loc)
+
     vim.current.buffer[:] = [
         'class Foo:',
         ' def foo(self): pass',
@@ -362,33 +365,36 @@ def test_goto(start_vim):
     ]
     time.sleep(SLEEP)
     vim.command('Semshi goto function next')
-    wait_for(lambda: vim.current.window.cursor == [2, 1])
+    wait_for(cursor_loc_at([2, 1]))
     vim.command('Semshi goto class prev')
-    wait_for(lambda: vim.current.window.cursor == [1, 0])
+    wait_for(cursor_loc_at([1, 0]))
     vim.command('Semshi goto class last')
-    wait_for(lambda: vim.current.window.cursor == [4, 0])
+    wait_for(cursor_loc_at([4, 0]))
     vim.command('Semshi goto class first')
-    wait_for(lambda: vim.current.window.cursor == [1, 0])
+    wait_for(cursor_loc_at([1, 0]))
 
 
 def test_goto_name(start_vim):
     vim = start_vim(file='')
+    def cursor_loc_at(loc):
+        return lambda: tuple(vim.current.window.cursor) == tuple(loc)
+
     vim.current.buffer[:] = ['aaa, aaa, aaa']
     time.sleep(SLEEP)
     vim.command('Semshi goto name next')
-    wait_for(lambda: vim.current.window.cursor == [1, 5])
+    wait_for(cursor_loc_at([1, 5]))
     time.sleep(SLEEP)
     vim.command('Semshi goto name next')
-    wait_for(lambda: vim.current.window.cursor == [1, 10])
+    wait_for(cursor_loc_at([1, 10]))
     time.sleep(SLEEP)
     vim.command('Semshi goto name next')
-    wait_for(lambda: vim.current.window.cursor == [1, 0])
+    wait_for(cursor_loc_at([1, 0]))
     time.sleep(SLEEP)
     vim.command('Semshi goto name prev')
-    wait_for(lambda: vim.current.window.cursor == [1, 10])
+    wait_for(cursor_loc_at([1, 10]))
     time.sleep(SLEEP)
     vim.command('Semshi goto name prev')
-    wait_for(lambda: vim.current.window.cursor == [1, 5])
+    wait_for(cursor_loc_at([1, 5]))
 
 
 def test_goto_hl_group(start_vim):
@@ -399,16 +405,16 @@ def test_goto_hl_group(start_vim):
     ]
     time.sleep(SLEEP)
     vim.command('Semshi goto parameterUnused first')
-    wait_for(lambda: vim.current.window.cursor == [2, 6])
+    wait_for(lambda: tuple(vim.current.window.cursor) == (2, 6))
 
 
 def test_goto_error(start_vim):
     vim = start_vim(['--cmd', 'let g:semshi#error_sign_delay = 0'], file='')
     vim.current.buffer[:] = ['a', '+']
     vim.wait_for_update_thread()
-    assert vim.current.window.cursor == [1, 0]
+    assert tuple(vim.current.window.cursor) == (1, 0)
     vim.command('Semshi goto error')
-    assert vim.current.window.cursor == [2, 0]
+    assert tuple(vim.current.window.cursor) == (2, 0)
 
 
 def test_clear(start_vim):
