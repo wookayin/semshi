@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 
 import pynvim
@@ -59,10 +60,14 @@ class WrappedVim:
         )
 
 
+NVIM_ARGV = ['nvim', '-i', 'NONE', '--embed', '--headless',
+             '--cmd', 'let g:python3_host_prog="{}"'.format(sys.executable),
+             '-u', VIMRC]
+
+
 @pytest.fixture(scope='function')
 def vim():
-    argv = ['nvim', '-u', VIMRC, '--embed', '--headless']
-    vim = pynvim.attach('child', argv=argv)
+    vim = pynvim.attach('child', argv=NVIM_ARGV)
     return WrappedVim(vim)
 
 
@@ -71,8 +76,7 @@ def start_vim(tmp_path):
     def f(argv=None, file=None):
         if argv is None:
             argv = []
-        argv = ['nvim', '-i', 'NONE', '--embed', '--headless',
-                '-u', VIMRC, *argv]
+        argv = list(NVIM_ARGV) + list(argv)
         vim = pynvim.attach('child', argv=argv)
         if file is not None:
             fn = file or (tmp_path / 'foo.py')
