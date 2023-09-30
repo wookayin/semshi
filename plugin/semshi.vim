@@ -90,11 +90,13 @@ function! semshi#buffer_wipeout()
 endfunction
 
 function! semshi#init()
+    " Also update README.md
     hi def semshiLocal           ctermfg=209 guifg=#ff875f
     hi def semshiGlobal          ctermfg=214 guifg=#ffaf00
     hi def semshiImported        ctermfg=214 guifg=#ffaf00 cterm=bold gui=bold
     hi def semshiParameter       ctermfg=75  guifg=#5fafff
     hi def semshiParameterUnused ctermfg=117 guifg=#87d7ff cterm=underline gui=underline
+    hi def link semshiKeywordArgument   @parameter.python
     hi def semshiFree            ctermfg=218 guifg=#ffafd7
     hi def semshiBuiltin         ctermfg=207 guifg=#ff5fff
     hi def semshiAttribute       ctermfg=49  guifg=#00ffaf

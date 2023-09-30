@@ -105,6 +105,7 @@ hi semshiGlobal          ctermfg=214 guifg=#ffaf00
 hi semshiImported        ctermfg=214 guifg=#ffaf00 cterm=bold gui=bold
 hi semshiParameter       ctermfg=75  guifg=#5fafff
 hi semshiParameterUnused ctermfg=117 guifg=#87d7ff cterm=underline gui=underline
+hi def link semshiKeywordArgument @parameter.python
 hi semshiFree            ctermfg=218 guifg=#ffafd7
 hi semshiBuiltin         ctermfg=207 guifg=#ff5fff
 hi semshiAttribute       ctermfg=49  guifg=#00ffaf
