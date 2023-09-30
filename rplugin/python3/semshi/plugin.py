@@ -55,11 +55,11 @@ class Plugin:
         self._options = None
 
         # Python version check
-        if (3, 7) <= sys.version_info < (3, 12):
+        if (3, 7) <= sys.version_info <= (3, 12, 9999):
             self._disabled = False
         else:
             self._disabled = True
-            self.echom("Semshi currently supports Python 3.7 - 3.11. " +
+            self.echom("Semshi currently supports Python 3.7 - 3.12. " +
                        "(Current: {})".format(sys.version.split()[0]))
 
     def echom(self, msg: str):

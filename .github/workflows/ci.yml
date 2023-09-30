@@ -20,6 +20,10 @@ jobs:
             os: ubuntu-latest
           - python-version: "3.11"
             os: ubuntu-latest
+          - python-version: "3.12-dev"
+            os: ubuntu-latest
+            neovim-version: nightly
+            PYNVIM_MASTER: true
 
     steps:
       - uses: actions/checkout@v2
@@ -41,13 +45,21 @@ jobs:
         run: |
           sudo apt install libfuse2
 
-          NVIM_VERSION="latest"
-          NVIM_DOWNLOAD_URL="https://github.com/neovim/neovim/releases/latest/download/nvim.appimage"
+          NVIM_VERSION="${{ matrix.neovim-version }}"
+          if [ -z "$NVIM_VERSION" ]; then
+            NVIM_VERSION="stable"
+          fi
+          NVIM_DOWNLOAD_URL="https://github.com/neovim/neovim/releases/download/${NVIM_VERSION}/nvim.appimage"
 
           mkdir -p $HOME/.local/bin
           wget -O $HOME/.local/bin/nvim $NVIM_DOWNLOAD_URL
           chmod +x $HOME/.local/bin/nvim
-          pip install pynvim
+
+          if [ -n "${{ matrix.PYNVIM_MASTER }}" ]; then
+            pip install 'pynvim @ git+https://github.com/neovim/pynvim.git'
+          else
+            pip install pynvim
+          fi
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Check neovim version
@@ -63,6 +75,7 @@ jobs:
         run: |
           pflake8 semshi/
           # pylint semshi/
+        if: ${{ matrix.python-version == '3.11' }}
 
       - name: Run tests
         run: |
