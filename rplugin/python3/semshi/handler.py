@@ -48,7 +48,7 @@ class BufferHandler:
         self._scheduled = False
         self._viewport_changed = False
 
-        # note: _views are guaranteed to be sorted per self.set_viewports()
+        # note: _views are guaranteed to be raster-sorted per self.set_viewports()
         self._views = []
 
         self._update_thread = None
