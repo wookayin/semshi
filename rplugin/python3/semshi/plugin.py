@@ -39,7 +39,7 @@ def subcommand(func=None, needs_handler=False, silent_fail=True):
             self._init_with_vim()
         if needs_handler and self._cur_handler is None:
             if not silent_fail:
-                self.echo_error("Semshi is not enabled in this buffer!")
+                self.echo_error('Semshi is not enabled in this buffer!')
             return
         func(self, *args, **kwargs)
 
@@ -85,16 +85,16 @@ class Plugin:
         self._options = Options(self._vim)
 
     def echo(self, *msgs):
-        msg = " ".join([str(m) for m in msgs])
-        self._vim.out_write(msg + "\n")
+        msg = ' '.join([str(m) for m in msgs])
+        self._vim.out_write(msg + '\n')
 
     def echo_error(self, *msgs):
-        msg = " ".join([str(m) for m in msgs])
-        self._vim.err_write(msg + "\n")
+        msg = ' '.join([str(m) for m in msgs])
+        self._vim.err_write(msg + '\n')
 
     # Must not be async here because we have to make sure that switching the
     # buffer handler is completed before other events are handled.
-    @pynvim.function("SemshiBufEnter", sync=True)
+    @pynvim.function('SemshiBufEnter', sync=True)
     def event_buf_enter(self, args):
         """Setup handler for current buffer when entering it"""
         assert self._cur_handler is not None
@@ -104,11 +104,11 @@ class Plugin:
         self._cur_handler.update()
         self._mark_selected()
 
-    @pynvim.function("SemshiBufLeave", sync=True)
+    @pynvim.function('SemshiBufLeave', sync=True)
     def event_buf_leave(self, _):
         self._cur_handler = None
 
-    @pynvim.function("SemshiBufWipeout", sync=True)
+    @pynvim.function('SemshiBufWipeout', sync=True)
     def event_buf_wipeout(self, args):
         self._remove_handler(args[0])
 
@@ -117,7 +117,7 @@ class Plugin:
         self._update_viewports(*args)
         self._mark_selected()
 
-    @pynvim.function("SemshiCursorMoved", sync=False)
+    @pynvim.function('SemshiCursorMoved', sync=False)
     def event_cursor_moved(self, args):
         if self._cur_handler is None:
             # CursorMoved may trigger before BufEnter, so select the buffer if
@@ -127,7 +127,7 @@ class Plugin:
         self._update_viewports(*args)
         self._mark_selected()
 
-    @pynvim.function("SemshiTextChanged", sync=False)
+    @pynvim.function('SemshiTextChanged', sync=False)
     def event_text_changed(self, _):
         if self._cur_handler is None:
             return
@@ -135,7 +135,7 @@ class Plugin:
         # unfocused buffer via e.g. nvim_buf_set_lines().
         self._cur_handler.update()
 
-    @pynvim.autocmd("VimLeave", sync=True)
+    @pynvim.autocmd('VimLeave', sync=True)
     def event_vim_leave(self):
         for handler in self._handlers.values():
             handler.shutdown()
@@ -152,9 +152,9 @@ class Plugin:
                             self._vim.current.buffer).options.get('filetype')
             py_filetypes = self._vim.vars.get('semshi#filetypes', [])
             if filetype in py_filetypes:  # for python buffers
-                self._vim.command("Semshi status")
+                self._vim.command('Semshi status')
             else:  # non-python
-                self.echo("This is semshi.")
+                self.echo('This is semshi.')
             return
 
         try:
@@ -165,12 +165,12 @@ class Plugin:
         func(self, *args[1:])
 
     @staticmethod
-    @pynvim.function("SemshiComplete", sync=True)
+    @pynvim.function('SemshiComplete', sync=True)
     def func_complete(arg):
         lead, *_ = arg
         return [c for c in _subcommands if c.startswith(lead)]
 
-    @pynvim.function("SemshiInternalEval", sync=True)
+    @pynvim.function('SemshiInternalEval', sync=True)
     def _internal_eval(self, args):
         """Eval Python code in plugin context.
 
@@ -233,15 +233,15 @@ class Plugin:
     @subcommand
     def status(self):
         if self._disabled:
-            self.echo("Semshi is disabled: unsupported python version.")
+            self.echo('Semshi is disabled: unsupported python version.')
             return
 
         buffer: pynvim.api.Buffer = self._vim.current.buffer
-        attached: bool = buffer.vars.get("semshi_attached", False)
+        attached: bool = buffer.vars.get('semshi_attached', False)
 
-        syntax_error = "(not attached)"
+        syntax_error = '(not attached)'
         if self._cur_handler:
-            syntax_error = str(self._cur_handler.syntax_error or "(none)")
+            syntax_error = str(self._cur_handler.syntax_error or '(none)')
 
         self.echo('\n'.join([
             'Semshi is {attached} on (bufnr={bufnr})',
@@ -281,22 +281,8 @@ class Plugin:
         else:
             handler.shutdown()
 
-<<<<<<< HEAD
-    def _get_viewports(self):
-        """Get all viewports for current buffer"""
-        vim = self._vim
-        buffer_widows = vim.call("win_findbuf", vim.current.buffer.number)
-        return [
-            ViewPort(start=vim.call("line", "w0", w), end=vim.call("line", "w$", w))
-            for w in buffer_widows
-        ]
-
-    def _update_viewport(self):
-        """Get viewports with self._get_viewports and update them
-=======
     def _update_viewports(self, viewports):
         """Send viewports to handler so it can do proper updates
->>>>>>> bc2c0e0 (avoid roundtrips from python)
 
         Does nothing if handler hasn't been assigned
         see self._select_and_save_handler()
@@ -323,13 +309,14 @@ class Plugin:
             raise ex  # Re-raise other errors.
 
     def _attach_listeners(self):
-        self._vim.call("semshi#buffer_attach")
+        self._vim.call('semshi#buffer_attach')
 
     def _detach_listeners(self):
-        self._vim.call("semshi#buffer_detach")
+        self._vim.call('semshi#buffer_detach')
 
     def _listeners_attached(self):
-        """Return whether event listeners are attached to the current buffer."""
+        """Return whether event listeners are attached to the current buffer.
+        """
         return self._vim.eval('get(b:, "semshi_attached", v:false)')
 
 
@@ -340,17 +327,17 @@ class Options:
     """
 
     _defaults = {
-        "filetypes": ["python"],
-        "excluded_hl_groups": ["local"],
-        "mark_selected_nodes": 1,
-        "no_default_builtin_highlight": True,
-        "simplify_markup": True,
-        "error_sign": True,
-        "error_sign_delay": 1.5,
-        "always_update_all_highlights": False,
-        "tolerate_syntax_errors": True,
-        "update_delay_factor": 0.0,
-        "self_to_attribute": True,
+        'filetypes': ['python'],
+        'excluded_hl_groups': ['local'],
+        'mark_selected_nodes': 1,
+        'no_default_builtin_highlight': True,
+        'simplify_markup': True,
+        'error_sign': True,
+        'error_sign_delay': 1.5,
+        'always_update_all_highlights': False,
+        'tolerate_syntax_errors': True,
+        'update_delay_factor': 0.0,
+        'self_to_attribute': True,
     }
     filetypes: List[str]
     excluded_hl_groups: List[str]
@@ -368,9 +355,9 @@ class Options:
         for key, val_default in Options._defaults.items():
             val = vim.vars.get("semshi#" + key, val_default)
             # vim.vars doesn't support setdefault(), so set value manually
-            vim.vars["semshi#" + key] = val
+            vim.vars['semshi#' + key] = val
             try:
-                converter = getattr(Options, "_convert_" + key)
+                converter = getattr(Options, '_convert_' + key)
             except AttributeError:
                 pass
             else:
