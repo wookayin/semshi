@@ -101,9 +101,9 @@ class Plugin:
     @pynvim.function('SemshiBufEnter', sync=True)
     def event_buf_enter(self, args):
         """Setup handler for current buffer when entering it"""
-        assert self._cur_handler is not None
         bufnr, viewports = args
         self._select_and_save_handler(bufnr)
+        assert self._cur_handler is not None
         self._update_viewports(viewports)
         self._cur_handler.update()
         self._mark_selected()
