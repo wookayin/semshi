@@ -16,11 +16,8 @@ import pynvim.api
 from .handler import BufferHandler
 from .node import hl_groups
 
-<<<<<<< HEAD
 # pylint: disable=consider-using-f-string
 
-=======
->>>>>>> bc2c0e0 (avoid roundtrips from python)
 _subcommands = {}
 
 def subcommand(func=None, needs_handler=False, silent_fail=True):
