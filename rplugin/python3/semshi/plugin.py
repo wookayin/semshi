@@ -8,7 +8,11 @@ if TYPE_CHECKING:
     from typing import Literal  # for py37
 
 from functools import partial, wraps
+import sys
+from functools import partial, wraps
 from typing import Optional, cast
+from functools import partial, wraps
+import sys
 
 import pynvim
 import pynvim.api
@@ -19,6 +23,8 @@ from .node import hl_groups
 # pylint: disable=consider-using-f-string
 
 _subcommands = {}
+
+
 def subcommand(func=None, needs_handler=False, silent_fail=True):
     """Decorator to register `func` as a ":Semshi [...]" subcommand.
 
