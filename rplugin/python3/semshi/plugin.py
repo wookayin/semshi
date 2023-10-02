@@ -19,7 +19,6 @@ from .node import hl_groups
 # pylint: disable=consider-using-f-string
 
 _subcommands = {}
-
 def subcommand(func=None, needs_handler=False, silent_fail=True):
     """Decorator to register `func` as a ":Semshi [...]" subcommand.
 
@@ -42,7 +41,6 @@ def subcommand(func=None, needs_handler=False, silent_fail=True):
                 self.echo_error('Semshi is not enabled in this buffer!')
             return
         func(self, *args, **kwargs)
-
     _subcommands[func.__name__] = wrapper
     return wrapper
 
@@ -112,7 +110,7 @@ class Plugin:
     def event_buf_wipeout(self, args):
         self._remove_handler(args[0])
 
-    @pynvim.function("SemshiVimResized", sync=False)
+    @pynvim.function('SemshiVimResized', sync=False)
     def event_vim_resized(self, args):
         self._update_viewports(*args)
         self._mark_selected()
@@ -247,7 +245,7 @@ class Plugin:
             'Semshi is {attached} on (bufnr={bufnr})',
             '- current handler: {handler}',
             '- handlers: {handlers}',
-            '- syntax error: {syntax_error}',
+            '- syntax error: {syntax_error}'
         ]).format(
             attached=attached and "attached" or "detached",
             bufnr=str(buffer.number),
@@ -325,7 +323,6 @@ class Options:
 
     The options will only be read and set once on init.
     """
-
     _defaults = {
         'filetypes': ['python'],
         'excluded_hl_groups': ['local'],
@@ -336,7 +333,7 @@ class Options:
         'error_sign_delay': 1.5,
         'always_update_all_highlights': False,
         'tolerate_syntax_errors': True,
-        'update_delay_factor': 0.0,
+        'update_delay_factor': .0,
         'self_to_attribute': True,
     }
     filetypes: List[str]
@@ -353,7 +350,7 @@ class Options:
 
     def __init__(self, vim: pynvim.api.Nvim):
         for key, val_default in Options._defaults.items():
-            val = vim.vars.get("semshi#" + key, val_default)
+            val = vim.vars.get('semshi#' + key, val_default)
             # vim.vars doesn't support setdefault(), so set value manually
             vim.vars['semshi#' + key] = val
             try:
