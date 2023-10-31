@@ -44,25 +44,33 @@ function! s:remove_builtin_extra()
 endfunction
 
 " Ensure the rplugin manifest
-if exists(':Semshi') == 0
-  command! -nargs=* Semshi call nvim_err_writeln(":Semshi not found. Run :UpdateRemotePlugins.")
+function! s:check_rplugin_manifest() abort
+    if exists('s:semshi_rplugin_error') > 0
+        return v:false
+    endif
+    if exists(':Semshi') > 0
+        return v:true
+    endif
+    let s:semshi_rplugin_error = 1
+    command! -nargs=* Semshi call nvim_err_writeln(":Semshi not found. Run :UpdateRemotePlugins.")
 
-  let s:semshi_rplugin_error = 1
-  if exists(':lua') && has('nvim-0.5.0') > 0
+    " notify with an asynchronous error message
+    if exists(':lua') && has('nvim-0.5.0') > 0
 lua << EOF
-    vim.schedule(function()
-      vim.notify(":Semshi not found. Run :UpdateRemotePlugins.", 'ERROR', { title = "semshi" })
-    end)
+      vim.schedule(function()
+        vim.notify(":Semshi not found. Run :UpdateRemotePlugins.", 'ERROR', { title = "semshi" })
+      end)
 EOF
-  endif
-endif
+    endif
+    return v:false
+endfunction
 
-function! s:filetype_changed()
-    if exists('s:semshi_rplugin_error')
-      " Avoid exceptions inside FileType autocmd, because the stacktrace is ugly.
-      " Instead, an asynchronous notification that something is broken will be made.
-      return
-    end
+function! s:filetype_changed() abort
+    if !s:check_rplugin_manifest()
+        " Avoid exceptions inside FileType autocmd, because the stacktrace is ugly.
+        " Instead, an asynchronous notification that something is broken will be made.
+        return
+    endif
 
     let l:ft = expand('<amatch>')
     if index(g:semshi#filetypes, l:ft) != -1
