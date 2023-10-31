@@ -1,3 +1,6 @@
+" plugin/semshi.vim
+" vim: set ts=4 sts=4 sw=4:
+
 " These options can't be initialized in the Python plugin since they must be
 " known immediately.
 let g:semshi#filetypes = get(g:, 'semshi#filetypes', ['python'])
