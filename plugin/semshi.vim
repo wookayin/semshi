@@ -43,6 +43,10 @@ function! s:remove_builtin_extra()
     hi link pythonKeyword pythonNumber
 endfunction
 
+if exists(':Semshi') == 0
+  command! -nargs=* Semshi call nvim_err_writeln(":Semshi not found. Run :UpdateRemotePlugins.")
+endif
+
 function! s:filetype_changed()
     let l:ft = expand('<amatch>')
     if index(g:semshi#filetypes, l:ft) != -1
