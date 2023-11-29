@@ -413,7 +413,7 @@ class Visitor:
                     self.visit(item)
             # We would want to use isinstance(value, AST) here. Not sure how
             # much more expensive that is, though.
-            elif value_type not in (str, int, bytes):
+            elif value_type not in (str, int, bytes, bool):
                 self.visit(value)
 
 

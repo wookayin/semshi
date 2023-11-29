@@ -943,6 +943,24 @@ def test_postponed_evaluation_of_annotations_pep563_resolution(request):
     assert annos[7].name == 'D' and annos[7].hl_group == LOCAL
 
 
+@pytest.mark.skipif('sys.version_info < (3, 10)')
+def test_match_case():
+    """Tests match/case syntax. see wookayin/semshi#19."""
+    parse('''
+        #!/usr/bin/env python3
+        import sys
+        arg = False
+        match arg:
+            case True: print('boolean')
+            case False: print('boolean')
+            case 42: print('integer')
+            case 3.14: print('float')
+            case "string": print('string')
+            case b"123": print('bytearray')
+            case sys.version: print('expr')
+    ''')
+
+
 class TestNode:
 
     def test_node(self):
