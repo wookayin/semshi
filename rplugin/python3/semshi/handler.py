@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Optional
 
 from collections import defaultdict
@@ -7,6 +9,9 @@ import time
 import pynvim
 import pynvim.api
 
+from pynvim.api import Nvim, Buffer
+
+from . import plugin
 from .parser import Parser, UnparsableError
 from .util import logger, debug_time, lines_to_code
 from .node import Node, SELECTED, hl_groups
@@ -22,7 +27,7 @@ class BufferHandler:
     The handler runs the parser, adds and removes highlights, keeps tracks of
     which highlights are visible and which ones need to be added or removed.
     """
-    def __init__(self, buf, vim, options):
+    def __init__(self, buf: Buffer, vim: Nvim, options: plugin.Options):
         self._buf = buf
         self._vim = vim
         self._options = options

@@ -1,8 +1,9 @@
 import builtins
 from itertools import count
+from typing import Dict
 
-
-hl_groups = {}
+# e.g. "global" -> "semshiGlobal"
+hl_groups: Dict[str, str] = {}
 
 def group(s):
     label = 'semshi' + s[0].capitalize() + s[1:]

@@ -15,3 +15,10 @@ disable = [
     "too-many-instance-attributes",
     "no-member",
 ]
+
+[tool.isort]
+# https://pycqa.github.io/isort/docs/configuration/options.html
+profile = "black"
+single_line_exclusions = ['typing', 'typing_extensions']
+extra_standard_library = ['typing_extensions']
+known_third_party = []

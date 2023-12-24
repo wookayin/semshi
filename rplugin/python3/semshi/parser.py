@@ -1,13 +1,14 @@
 import ast
+import symtable
 from collections import deque
 from collections.abc import Iterable
 from functools import singledispatch
 from keyword import kwlist
-import symtable
-from token import NAME, INDENT, OP
+from token import INDENT, NAME, OP
 from tokenize import TokenError, tokenize
+from typing import List, Optional
 
-from .util import debug_time, logger, lines_to_code, code_to_lines
+from .util import code_to_lines, debug_time, lines_to_code, logger
 from .visitor import visitor
 
 
@@ -23,7 +24,10 @@ class Parser:
     run of `parse()` on changed source code, it returns the nodes that have
     been added and removed.
     """
-    def __init__(self, exclude=None, fix_syntax=True):
+    def __init__(self,
+                 exclude: Optional[List[str]] = None,
+                 fix_syntax: bool = True,
+                 ):
         self._excluded = exclude or []
         self._fix_syntax = fix_syntax
         self._locations = {}

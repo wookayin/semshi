@@ -1,6 +1,11 @@
-from typing import Optional, cast
-from functools import partial, wraps
+from __future__ import annotations
+
 import sys
+from functools import partial, wraps
+from typing import TYPE_CHECKING, List, Optional, Sequence, cast
+
+if TYPE_CHECKING:
+    from typing import Literal  # for py37
 
 import pynvim
 import pynvim.api
@@ -23,6 +28,7 @@ def subcommand(func=None, needs_handler=False, silent_fail=True):
     if func is None:
         return partial(
             subcommand, needs_handler=needs_handler, silent_fail=silent_fail)
+
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         # pylint: disable=protected-access
@@ -255,6 +261,7 @@ class Plugin:
         except KeyError:
             if buf is None:
                 buf = self._vim.buffers[buf_num]
+            assert self._options is not None, "must have been initialized"
             handler = BufferHandler(buf, self._vim, self._options)
             self._handlers[buf_num] = handler
         self._cur_handler = handler
@@ -277,6 +284,7 @@ class Plugin:
             self._cur_handler.viewport(start, stop)
 
     def _mark_selected(self):
+        assert self._options is not None, "must have been initialized"
         if not self._options.mark_selected_nodes:
             return
         try:
@@ -321,8 +329,19 @@ class Options:
         'update_delay_factor': .0,
         'self_to_attribute': True,
     }
+    filetypes: List[str]
+    excluded_hl_groups: List[str]
+    mark_selected_nodes: Literal[0, 1, 2]
+    no_default_builtin_highlight: bool
+    simplify_markup: bool
+    error_sign: bool
+    error_sign_delay: float
+    always_update_all_highlights: bool
+    tolerate_syntax_errors: bool
+    update_delay_factor: float
+    self_to_attribute: bool
 
-    def __init__(self, vim):
+    def __init__(self, vim: pynvim.api.Nvim):
         for key, val_default in Options._defaults.items():
             val = vim.vars.get('semshi#' + key, val_default)
             # vim.vars doesn't support setdefault(), so set value manually
@@ -336,9 +355,10 @@ class Options:
             setattr(self, key, val)
 
     @staticmethod
-    def _convert_excluded_hl_groups(items):
+    def _convert_excluded_hl_groups(items: Sequence[str]) -> List[str]:
         try:
             return [hl_groups[g] for g in items]
         except KeyError as e:
             # TODO Use err_write instead?
-            raise Exception('"%s" is an unknown highlight group.' % e.args[0])
+            raise ValueError(f'"{e.args[0]}" is an unknown highlight group.'
+                             ) from e
