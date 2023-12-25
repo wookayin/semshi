@@ -7,9 +7,21 @@ from pathlib import Path
 from textwrap import dedent
 
 import pytest
-from semshi.node import (ATTRIBUTE, BUILTIN, FREE, GLOBAL, IMPORTED, LOCAL,
-                         PARAMETER, PARAMETER_UNUSED, SELF, UNRESOLVED, Node,
-                         group)
+
+from semshi.node import (
+    ATTRIBUTE,
+    BUILTIN,
+    FREE,
+    GLOBAL,
+    IMPORTED,
+    LOCAL,
+    PARAMETER,
+    PARAMETER_UNUSED,
+    SELF,
+    UNRESOLVED,
+    Node,
+    group,
+)
 from semshi.parser import Parser, UnparsableError
 
 from .conftest import make_parser, make_tree, parse
@@ -173,7 +185,7 @@ def test_comprehension_scopes():
         assert root['dictcomp']['names'] == ['j', 'k', 'l']
 
         # generator variables b, e, h, l are local within the scope
-        assert [name for name, group in groups.items() if group == LOCAL
+        assert [name for name, group in groups.items() if group == LOCAL \
                 ] == ['b', 'e', 'h', 'l']
         assert [name for name, group in groups.items() if group == UNRESOLVED
                 ] == ['c', 'a', 'f', 'd', 'i', 'g', 'm', 'j', 'k']
@@ -187,15 +199,16 @@ def test_comprehension_scopes():
             'f', 'd', 'e',
             'i', 'g', 'h',
             'm', 'j', 'k', 'l'
-        ]
+        ]  # yapf: disable
         # no comprehension children nodes
         assert list(root.keys()) == ['names', 'genexpr']
 
         # generator variables e, h, l have the scope of the top-level module
         assert [name for name, group in groups.items() if group == GLOBAL
-                ] == ['e', 'h', 'l']   # b is defined within the generator scope
+                ] == ['e', 'h', 'l']  # b is defined within the generator scope
         assert [name for name, group in groups.items() if group == UNRESOLVED
                 ] == ['c', 'a', 'f', 'd', 'i', 'g', 'm', 'j', 'k']
+
 
 def test_function_scopes():
     names = parse(r'''
@@ -213,7 +226,7 @@ def test_function_scopes():
         'e', 'h',
         *(['g', 'g'] if PEP_709 else []),
         'func', 'k', 'func2', 'func', 'x', 'p', 'z'
-    ]
+    ]  # yapf: disable
     if not PEP_709:
         assert root['listcomp']['names'] == ['g', 'g']
     assert root['func']['names'] == ['a', 'b', 'c', 'd', 'f', 'i']
@@ -258,7 +271,7 @@ def test_import_scopes_and_positions():
         'aa', 'cc', 'ee', 'hh', 'ii', 'kk', 'll', 'oo', 'qq', 'tt', 'vv', 'xx',
         'zz', 'aaa', 'bbb', 'ddd', 'eee', 'hhh', 'lll', 'mmm', 'ppp'
     ]
-    assert [(name.name,) + name.pos for name in names] == [
+    assert [(name.name, ) + name.pos for name in names] == [
         ('aa', 3, 7),
         ('cc', 4, 13),
         ('ee', 5, 15),
@@ -306,7 +319,8 @@ def test_multibyte_import_positions():
         (7, 13), (22, 28), (30, 36), (57, 63), (82, 88),
         (4, 10), (12, 18),
         (11, 17),  # note the line continuation
-    ]
+    ]  # yapf: disable
+
 
 def test_name_mangling():
     """Leading double underscores can lead to a different symbol name."""
@@ -402,6 +416,7 @@ def test_unresolved_name():
     names = parse('def foo(): a')
     assert names[1].hl_group == UNRESOLVED
 
+
 def test_imported_names():
     names = parse(r'''
         #!/usr/bin/env python3
@@ -423,8 +438,8 @@ def test_nested_comprehension():
     if not PEP_709:
         assert root['names'] == ['c', 'n', 's']
         assert root['listcomp']['names'] == [
-            'a', 'b', 'd', 'e', 'f', 'g', 'l', 'm', 'z', 'k', 'h', 'i', 'o', 'p',
-            'q', 'r'
+            'a', 'b', 'd', 'e', 'f', 'g', 'l', 'm', 'z', 'k', 'h', 'i', 'o',
+            'p', 'q', 'r'
         ]
     else:
         # Python 3.12: all the 18 symbols are included in the root scope
@@ -432,7 +447,7 @@ def test_nested_comprehension():
             *['c', 'a', 'b'], *['d', 'e', 'f', 'g'],
             *['n', 'l', 'm'], *['z', 'x', 'y'], 'k', 'h', 'i',
             *['s', 'o', 'p', 'q', 'r']
-        ]
+        ]  # yapf: disable
         assert 'listcomp' not in root
 
 
@@ -525,7 +540,7 @@ def test_type_hints():
     ''')
     root = make_tree(names)
     assert root['names'] == [
-        'dd','f', 'A', 'D', 'C', 'E', 'z', 'y', 'f2', 'X'
+        'dd', 'f', 'A', 'D', 'C', 'E', 'z', 'y', 'f2', 'X'
     ]
 
 
@@ -546,6 +561,7 @@ def test_decorator():
         'd1', 'a', 'c', 'A', 'd2', 'x', 'z', 'B', 'd3', 'C'
     ]
 
+
 def test_global_builtin():
     """A builtin name assigned globally should be highlighted as a global, not
     a builtin."""
@@ -558,6 +574,7 @@ def test_global_builtin():
     assert names[0].hl_group == BUILTIN
     assert names[-2].hl_group == GLOBAL
     assert names[-1].hl_group == BUILTIN
+
 
 def test_global_statement():
     names = parse(r'''
@@ -577,7 +594,7 @@ def test_positions():
         def func(x=y):    # Line 4
             b = 2
     ''')
-    assert [(name.name,) + name.pos for name in names] == [
+    assert [(name.name, ) + name.pos for name in names] == [
         ('a', 3, 0),
         ('y', 4, 11),
         ('func', 4, 4),
@@ -754,16 +771,15 @@ def test_same_nodes_use_target():
                 self.x, self.x
     ''')
     node = parser._nodes[-1]
-    assert [
-        n.name for n in list(parser.same_nodes(node, use_target=True))
-    ] == ['x', 'x']
-    assert [
-        n.name for n in list(parser.same_nodes(node, use_target=False))
-    ] == ['self', 'self', 'self']
+    assert [n.name for n in list(parser.same_nodes(node, use_target=True))
+            ] == ['x', 'x']
+    assert [n.name for n in list(parser.same_nodes(node, use_target=False))
+            ] == ['self', 'self', 'self']
 
 
 def test_refresh_names():
     """Clear everything if more than one line changes."""
+    # yapf: disable
     parser = Parser()
     add, clear = parser.parse(dedent(r'''
         def foo():
@@ -804,9 +820,11 @@ def test_refresh_names():
     '''))
     assert len(add) == 4
     assert len(clear) == 5
+    # yapf: enable
 
 
 def test_exclude_types():
+    # yapf: disable
     parser = Parser(exclude=[LOCAL])
     add, clear = parser.parse(dedent(r'''
         a = 1
@@ -843,6 +861,7 @@ def test_exclude_types():
     '''))
     assert add == []
     assert [n.name for n in clear] == ['g']
+    # yapf: enable
 
 
 def test_exclude_types_same_nodes():
@@ -872,7 +891,7 @@ def test_unused_args():
         PARAMETER, PARAMETER,
         # x               bar          y
         PARAMETER_UNUSED, MODULE_FUNC, PARAMETER_UNUSED
-    ]
+    ]  # yapf: disable
 
 
 def test_unused_args2():
@@ -881,16 +900,14 @@ def test_unused_args2():
         #!/usr/bin/env python3
         def foo(x): lambda: x
     ''')
-    assert [n.hl_group for n in names if n.name == 'x'] == [
-        PARAMETER, FREE,
-    ]
+    assert [n.hl_group for n in names if n.name == 'x'] == [PARAMETER, FREE]
 
     names = parse(r'''
         #!/usr/bin/env python3
         def foo(x):
             [[x for a in b] for y in z]
     ''')
-    assert [n.hl_group for n in names if n.name == 'x'] == [
+    assert [n.hl_group for n in names if n.name == 'x'] == [ \
         PARAMETER,
         PARAMETER if PEP_709 else FREE
     ]
@@ -908,7 +925,11 @@ def test_posonlyargs():
 @pytest.mark.skipif('sys.version_info < (3, 8)')
 def test_posonlyargs_with_annotation():
     names = parse('def f(x: y, /): pass')
-    assert [n.hl_group for n in names] == [MODULE_FUNC, UNRESOLVED, PARAMETER_UNUSED]
+    assert [n.hl_group for n in names] == [
+        MODULE_FUNC,
+        UNRESOLVED,
+        PARAMETER_UNUSED,
+    ]
 
 
 @pytest.mark.skipif('sys.version_info < (3, 8)')
@@ -952,7 +973,7 @@ def test_postponed_evaluation_of_annotations_pep563(enable_pep563):
         ('int', BUILTIN), ('Dict', IMPORTED),
         ('self', SELF), ('v', PARAMETER_UNUSED), ('built_in', PARAMETER),
         ('temp', LOCAL), ('Any', IMPORTED), ('built_in', PARAMETER),
-    ]
+    ]  # yapf: disable
     expected = [n for n in expected if len(n) > 0]
     assert [(n.name, n.hl_group) for n in names] == expected
 
@@ -1009,6 +1030,7 @@ def test_match_case():
 class TestNode:
 
     def test_node(self):
+        # yapf: disable
         class Symbol:
             def __init__(self, name, **kwargs):
                 self.name = name
@@ -1027,6 +1049,7 @@ class TestNode:
                 return next(sym for sym in self.symbols if sym.name == name)
             def get_type(self):
                 return self.type
+        # yapf: enable
 
         a = Node('foo', 0, 0, [Table([Symbol('foo', local=True)])])
         b = Node('bar', 0, 10, [Table([Symbol('bar', local=True)])])
@@ -1044,8 +1067,10 @@ def test_diff():
 
 
 def test_minor_change():
+
     def minor_change(c1, c2):
         return Parser._minor_change(c1, c2)
+
     assert minor_change(list('abc'), list('axc')) == (True, 1)
     assert minor_change(list('abc'), list('xbx')) == (False, None)
     assert minor_change(list('abc'), list('abcedf')) == (False, None)
@@ -1055,5 +1080,5 @@ def test_minor_change():
 def test_specific_grammar(request):
     path = Path(request.fspath.dirname) / \
         'data/grammar{0}{1}.py'.format(*sys.version_info[:2])
-    with open(str(path)) as f:
+    with open(str(path), encoding='utf-8') as f:
         parse(f.read())

@@ -7,12 +7,15 @@ import time
 def lines_to_code(lines):
     return '\n'.join(lines)
 
+
 def code_to_lines(code):
     return code.split('\n')
 
 
 def debug_time(label_or_callable=None, detail=None):
+
     def inner(func):
+
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             t = time.time()
@@ -31,7 +34,9 @@ def debug_time(label_or_callable=None, detail=None):
                     text += detail.format(*args, **kwargs)
             logger.debug(text)
             return res
+
         return wrapper
+
     if callable(label_or_callable):
         return inner(label_or_callable)
     return inner

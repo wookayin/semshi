@@ -24,10 +24,12 @@ class Parser:
     run of `parse()` on changed source code, it returns the nodes that have
     been added and removed.
     """
-    def __init__(self,
-                 exclude: Optional[List[str]] = None,
-                 fix_syntax: bool = True,
-                 ):
+
+    def __init__(
+        self,
+        exclude: Optional[List[str]] = None,
+        fix_syntax: bool = True,
+    ):
         self._excluded = exclude or []
         self._fix_syntax = fix_syntax
         self._locations = {}
@@ -165,16 +167,18 @@ class Parser:
         tokens = tokenize(iter([line.encode('utf-8')]).__next__)
         prev = None
         text = ''
+
         def add_token(token, filler):
             nonlocal text, prev
             text += (token.start[1] - len(text)) * filler + token.string
             prev = token
+
         try:
             for token in tokens:
                 if token.type == INDENT:
                     text += token.string
-                elif (token.type == OP and token.string == '.' and prev and
-                      prev.type == NAME):
+                elif (token.type == OP and token.string == '.' and prev
+                      and prev.type == NAME):
                     add_token(token, ' ')
                 elif token.type == NAME and token.string not in kwlist:
                     if prev and prev.type == OP and prev.string == '.':
@@ -334,11 +338,12 @@ class Parser:
 class _LocationCollectionVisitor(ast.NodeVisitor):
     """Node vistor which collects the locations of all AST nodes of a given
     type."""
+
     def __init__(self, types):
         self._types = types
         self.locations = []
 
     def visit(self, node):
-        if type(node) in self._types: # pylint: disable=unidiomatic-typecheck
+        if type(node) in self._types:  # pylint: disable=unidiomatic-typecheck
             self.locations.append((node.lineno, node.col_offset))
         return self.generic_visit(node)

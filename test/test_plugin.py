@@ -8,7 +8,7 @@ import pytest
 
 # pylint: disable=consider-using-f-string
 # pylint: disable=unnecessary-lambda-assignment
-
+# pylint: disable=redefined-outer-name
 
 VIMRC = 'test/data/test.vimrc'
 SLEEP = 0.1
@@ -55,14 +55,16 @@ class WrappedVim:
 
     def wait_for_update_thread(self):
         wait_for(
-            lambda: self.host_eval('plugin._cur_handler._update_thread.is_alive()'),
+            lambda: self.host_eval(
+                'plugin._cur_handler._update_thread.is_alive()'),
             lambda x: not x,
         )
 
 
-NVIM_ARGV = ['nvim', '-i', 'NONE', '--embed', '--headless',
-             '--cmd', 'let g:python3_host_prog="{}"'.format(sys.executable),
-             '-u', VIMRC]
+NVIM_ARGV = [
+    'nvim', '-i', 'NONE', '--embed', '--headless', '--cmd',
+    'let g:python3_host_prog="{}"'.format(sys.executable), '-u', VIMRC
+]
 
 
 @pytest.fixture(scope='function')
@@ -73,6 +75,7 @@ def vim():
 
 @pytest.fixture(scope='function')
 def start_vim(tmp_path):
+
     def f(argv=None, file=None):
         if argv is None:
             argv = []
@@ -82,8 +85,8 @@ def start_vim(tmp_path):
             fn = file or (tmp_path / 'foo.py')
             vim.command('edit %s' % fn)
         return WrappedVim(vim)
-    return f
 
+    return f
 
 
 def test_commands(vim):
@@ -105,7 +108,8 @@ def test_python_file(vim, tmp_path):
 
 def test_current_nodes(vim, tmp_path):
     """Changes to the code cause changes to the registered nodes"""
-    node_names = lambda: vim.host_eval('[n.name for n in plugin._cur_handler._parser._nodes]')
+    node_names = lambda: vim.host_eval(
+        '[n.name for n in plugin._cur_handler._parser._nodes]')
 
     vim.command('edit %s' % (tmp_path / 'foo.py'))
     vim.current.buffer[:] = ['aaa', 'bbb']
@@ -124,7 +128,7 @@ def test_highlights():
     implemented once the neovim API provides a way to retrieve the currently
     active highlights. See: https://github.com/neovim/neovim/issues/6412
     """
-    raise NotImplementedError() # TODO
+    raise NotImplementedError()  # TODO
 
 
 def test_status(vim, tmp_path):
@@ -144,7 +148,8 @@ def test_status(vim, tmp_path):
 
 def test_switch_handler(vim, tmp_path):
     """When switching to a different buffer, the current handlers is updated"""
-    node_names = lambda: vim.host_eval('[n.name for n in plugin._cur_handler._parser._nodes]')
+    node_names = lambda: vim.host_eval(
+        '[n.name for n in plugin._cur_handler._parser._nodes]')
 
     vim.command('edit %s' % (tmp_path / 'foo.py'))
     vim.current.buffer[:] = ['aaa', 'bbb']
@@ -186,13 +191,14 @@ def test_cursormoved_before_bufenter(vim, tmp_path):
 
 def test_selected_nodes(vim, tmp_path):
     """When moving the cursor above a node, it's registered as selected"""
-    node_positions = lambda: vim.host_eval('[n.pos for n in plugin._cur_handler._selected_nodes]')
+    node_positions = lambda: vim.host_eval(
+        '[n.pos for n in plugin._cur_handler._selected_nodes]')
 
     vim.command('edit %s' % (tmp_path / 'foo.py'))
     vim.current.buffer[:] = ['aaa', 'aaa']
-    vim.call('setpos', '.', [0, 1,1])
+    vim.call('setpos', '.', [0, 1, 1])
     wait_for(node_positions, lambda x: x == [[2, 0]])
-    vim.call('setpos', '.', [0, 2,1])
+    vim.call('setpos', '.', [0, 2, 1])
     wait_for(node_positions, lambda x: x == [[1, 0]])
 
 
@@ -203,19 +209,25 @@ def test_option_filetypes(start_vim):
     vim = start_vim(['--cmd', 'let g:semshi#filetypes = []'], file='foo.py')
     assert vim.host_eval('plugin._cur_handler is None')
 
-    vim = start_vim(['--cmd', 'let g:semshi#filetypes = ["html", "php"]'], file='foo.py')
+    vim = start_vim(['--cmd', 'let g:semshi#filetypes = ["html", "php"]'],
+                    file='foo.py')
     assert vim.host_eval('plugin._cur_handler is None')
 
-    vim = start_vim(['--cmd', 'let g:semshi#filetypes = ["html", "php"]'], file='foo.php')
+    vim = start_vim(['--cmd', 'let g:semshi#filetypes = ["html", "php"]'],
+                    file='foo.php')
     assert vim.host_eval('plugin._cur_handler is not None')
 
 
 def test_option_excluded_hl_groups(start_vim):
-    vim = start_vim(['--cmd', 'let g:semshi#excluded_hl_groups = ["global", "imported"]'], file='')
+    vim = start_vim(
+        ['--cmd', 'let g:semshi#excluded_hl_groups = ["global", "imported"]'],
+        file='')
     # TODO Actually, we don't want to inspect the object but check which
     # highlights are applied - but we can't until the neovim API becomes
     # available.
-    assert vim.host_eval('plugin._cur_handler._parser._excluded == ["semshiGlobal", "semshiImported"]')
+    assert vim.host_eval(
+        'plugin._cur_handler._parser._excluded == ["semshiGlobal", "semshiImported"]'
+    )
 
 
 def test_option_mark_selected_nodes(start_vim):
@@ -241,15 +253,19 @@ def test_option_no_default_builtin_highlight(start_vim):
     vim.current.buffer[:] = ['len']
     assert vim.eval(synstack_cmd) == []
 
-    vim = start_vim(['--cmd', 'let g:semshi#no_default_builtin_highlight = 0'], file='')
+    vim = start_vim(['--cmd', 'let g:semshi#no_default_builtin_highlight = 0'],
+                    file='')
     vim.current.buffer[:] = ['len']
     assert vim.eval(synstack_cmd) == ['pythonBuiltin']
 
 
 def test_option_always_update_all_highlights(start_vim):
+
     def get_ids():
         time.sleep(SLEEP)
-        return vim.host_eval('[n.id for n in plugin._cur_handler._parser._nodes]')
+        return vim.host_eval(
+            '[n.id for n in plugin._cur_handler._parser._nodes]')
+
     vim = start_vim(file='')
     vim.current.buffer[:] = ['aaa', 'aaa']
     old = get_ids()
@@ -257,7 +273,8 @@ def test_option_always_update_all_highlights(start_vim):
     new = get_ids()
     assert len(set(old) & set(new)) == 1
 
-    vim = start_vim(['--cmd', 'let g:semshi#always_update_all_highlights = 1'], file='')
+    vim = start_vim(['--cmd', 'let g:semshi#always_update_all_highlights = 1'],
+                    file='')
     vim.current.buffer[:] = ['aaa', 'aaa']
     old = get_ids()
     vim.current.buffer[:] = ['aaa', 'aab']
@@ -283,21 +300,21 @@ def test_syntax_error_sign(start_vim):
     vim.current.buffer[:] = ['a']
     vim.wait_for_update_thread()
     time.sleep(SLEEP)
-    with pytest.raises(pynvim.api.nvim.NvimError):
+    with pytest.raises(pynvim.api.NvimError):
         vim.command(jump_to_sign)
 
     vim = start_vim(['--cmd', 'let g:semshi#error_sign = 0'], file='')
     vim.current.buffer[:] = ['+']
     vim.wait_for_update_thread()
     time.sleep(SLEEP)
-    with pytest.raises(pynvim.api.nvim.NvimError):
+    with pytest.raises(pynvim.api.NvimError):
         vim.command(jump_to_sign)
 
     vim = start_vim(['--cmd', 'let g:semshi#error_sign_delay = 1.0'], file='')
     vim.current.buffer[:] = ['+']
     vim.wait_for_update_thread()
     time.sleep(SLEEP)
-    with pytest.raises(pynvim.api.nvim.NvimError):
+    with pytest.raises(pynvim.api.NvimError):
         vim.command(jump_to_sign)
 
 
@@ -308,7 +325,8 @@ def test_option_tolerate_syntax_errors(start_vim):
     num_nodes = vim.host_eval('len(plugin._cur_handler._parser._nodes)')
     assert num_nodes == 1
 
-    vim = start_vim(['--cmd', 'let g:semshi#tolerate_syntax_errors = 0'], file='')
+    vim = start_vim(['--cmd', 'let g:semshi#tolerate_syntax_errors = 0'],
+                    file='')
     vim.current.buffer[:] = ['a+']
     time.sleep(SLEEP)
     num_nodes = vim.host_eval('len(plugin._cur_handler._parser._nodes)')
@@ -326,7 +344,8 @@ def test_option_update_delay_factor(start_vim):
 
 def test_option_self_to_attribute(start_vim):
     buf = ['class Foo:', ' def foo(self): self.bar, self.bar']
-    selected = lambda: vim.host_eval('[n.pos for n in plugin._cur_handler._selected_nodes]')
+    selected = lambda: vim.host_eval(
+        '[n.pos for n in plugin._cur_handler._selected_nodes]')
 
     vim = start_vim(file='')
     vim.current.buffer[:] = buf
@@ -358,6 +377,7 @@ def test_rename(start_vim):
 
 def test_goto(start_vim):
     vim = start_vim(file='')
+
     def cursor_loc_at(loc):
         return lambda: tuple(vim.current.window.cursor) == tuple(loc)
 
@@ -380,6 +400,7 @@ def test_goto(start_vim):
 
 def test_goto_name(start_vim):
     vim = start_vim(file='')
+
     def cursor_loc_at(loc):
         return lambda: tuple(vim.current.window.cursor) == tuple(loc)
 
@@ -430,10 +451,15 @@ def test_clear(start_vim):
 
 
 def test_enable_disable(start_vim):
+
+    # yapf: disable
     def num_nodes(n):
         def f():
-            return vim.host_eval('len(plugin._cur_handler._parser._nodes)') == n
+            return vim.host_eval(
+                'len(plugin._cur_handler._parser._nodes)') == n
         return f
+    # yapf: enable
+
     def no_handler():
         return vim.host_eval('plugin._cur_handler is None')
 
@@ -478,5 +504,5 @@ def test_pause(start_vim):
 
 def test_bug_21(start_vim):
     vim = start_vim(file='foo.ext')
-    with pytest.raises(pynvim.api.nvim.NvimError, match='.*not enabled.*'):
+    with pytest.raises(pynvim.api.NvimError, match='.*not enabled.*'):
         vim.command('Semshi goto error')

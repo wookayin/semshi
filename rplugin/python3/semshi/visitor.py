@@ -1,7 +1,7 @@
 # pylint: disable=unidiomatic-typecheck
 import ast
-from itertools import count
 import sys
+from itertools import count
 from token import NAME, OP
 from tokenize import tokenize
 
@@ -10,15 +10,18 @@ from .util import debug_time
 
 # Node types which introduce a new scope and child symboltable
 BLOCKS = (
-    ast.Module, ast.Lambda,
-    ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef,
+    ast.Module,
+    ast.Lambda,
+    ast.FunctionDef,
+    ast.AsyncFunctionDef,
+    ast.ClassDef,
     ast.GeneratorExp,
 )
 if sys.version_info < (3, 12):
     # PEP-709: comprehensions no longer have dedicated stack frames; the
     # comprehension's local will be included in the parent function's symtable
     # (Note: generator expressions are excluded in Python 3.12)
-    BLOCKS = tuple(
+    BLOCKS = tuple(\
         list(BLOCKS) +
         [ast.ListComp, ast.DictComp, ast.SetComp]
     )
@@ -29,9 +32,9 @@ FUNCTION_BLOCKS = (ast.FunctionDef, ast.Lambda, ast.AsyncFunctionDef)
 if sys.version_info < (3, 8):
     SKIP = (ast.NameConstant, ast.Str, ast.Num)
 else:
-    from ast import Constant # pylint: disable=ungrouped-imports
-    SKIP = (Constant,)
-SKIP += (ast.Store, ast.Load,
+    from ast import Constant  # pylint: disable=ungrouped-imports
+    SKIP = (Constant, )
+SKIP += (ast.Store, ast.Load, \
          ast.Eq, ast.Lt, ast.Gt, ast.NotEq, ast.LtE, ast.GtE)
 
 
@@ -154,7 +157,7 @@ class Visitor:
             self._cur_env,
             # Using __dict__.get() is faster than getattr()
             node.__dict__.get('_target'),
-        ))
+        )) # yapf: disable
 
     def _visit_arg(self, node):
         """Visit function argument."""
@@ -198,7 +201,7 @@ class Visitor:
             lineno,
             len(cur_line[:token.start[1]].encode('utf-8')),
             self._cur_env,
-        ))
+        ))  # yapf: disable
 
     def _visit_comp(self, node):
         """Visit set/dict/list comprehension or generator expression."""
@@ -262,7 +265,7 @@ class Visitor:
                     self._cur_env,
                     None,
                     IMPORTED,
-                ))
+                ))  # yapf: disable
                 return
         # Guessing the line failed, so we need to use the tokenizer
         tokens = tokenize_lines(self._lines[i] for i in count(line_idx))
@@ -293,7 +296,8 @@ class Visitor:
                 self._cur_env,
                 None,
                 IMPORTED,
-            ))
+            ))  # yapf: disable
+
             # If there are more imports in that import statement...
             if more:
                 # ...they must be comma-separated, so advance to next comma.
@@ -338,7 +342,7 @@ class Visitor:
                     node.lineno,
                     offset,
                     self._cur_env,
-                ))
+                )) # yapf: disable
                 # Add 2 bytes for the comma and space
                 offset += len(name.encode('utf-8')) + 2
             return
@@ -354,7 +358,7 @@ class Visitor:
                 token.start[0] + line_idx,
                 len(cur_line[:token.start[1]].encode('utf-8')),
                 self._cur_env,
-            ))
+            )) # yapf: disable
             # If there are more declared names...
             if more:
                 # ...advance to next comma.
@@ -403,10 +407,10 @@ class Visitor:
             node.value.lineno,
             node.value.col_offset + len(target_name) + 1,
             self._env[:-1],
-            None, # target
+            None,  # target
             ATTRIBUTE,
         )
-        node.value._target = new_node # pylint: disable=protected-access
+        node.value._target = new_node  # pylint: disable=protected-access
         self.nodes.append(new_node)
 
     def _iter_node(self, node):

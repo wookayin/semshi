@@ -22,3 +22,12 @@ profile = "black"
 single_line_exclusions = ['typing', 'typing_extensions']
 extra_standard_library = ['typing_extensions']
 known_third_party = []
+
+[tool.yapf]
+# see https://github.com/google/yapf#knobs
+based_on_style = "pep8"
+indent_width = 4
+spaces_before_comment = 2
+
+[tool.yapfignore]
+ignore_patterns = ['test/data/*.py']

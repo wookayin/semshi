@@ -5,10 +5,12 @@ from typing import Dict
 # e.g. "global" -> "semshiGlobal"
 hl_groups: Dict[str, str] = {}
 
+
 def group(s):
     label = 'semshi' + s[0].capitalize() + s[1:]
     hl_groups[s] = label
     return label
+
 
 UNRESOLVED = group('unresolved')
 ATTRIBUTE = group('attribute')
@@ -35,8 +37,10 @@ class Node:
     # Highlight ID counter (chosen arbitrarily)
     id_counter = count(314001)
 
-    __slots__ = ['id', 'name', 'lineno', 'col', 'end', 'env',
-                 'symname', 'symbol', 'hl_group', 'target', '_tup']
+    __slots__ = [
+        'id', 'name', 'lineno', 'col', 'end', 'env', 'symname', 'symbol',
+        'hl_group', 'target', '_tup'
+    ]
 
     def __init__(self, name, lineno, col, env, target=None, hl_group=None):
         self.id = next(Node.id_counter)
@@ -66,10 +70,10 @@ class Node:
         self._tup = (self.lineno, self.col, self.hl_group, self.name)
 
     def __lt__(self, other):
-        return self._tup < other._tup # pylint: disable=protected-access
+        return self._tup < other._tup  # pylint: disable=protected-access
 
     def __eq__(self, other):
-        return self._tup == other._tup # pylint: disable=protected-access
+        return self._tup == other._tup  # pylint: disable=protected-access
 
     def __hash__(self):
         # Currently only required for tests
@@ -159,8 +163,8 @@ class Node:
         if not name.startswith('__') or name.endswith('__'):
             return name
         try:
-            cls = next(t for t in reversed(self.env) if
-                       t.get_type() == 'class')
+            cls = next(t for t in reversed(self.env)
+                       if t.get_type() == 'class')
         except StopIteration:
             # Not inside a class, so no candidate for name mangling
             return name

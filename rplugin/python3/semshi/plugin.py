@@ -26,8 +26,9 @@ def subcommand(func=None, needs_handler=False, silent_fail=True):
     error message is printed.
     """
     if func is None:
-        return partial(
-            subcommand, needs_handler=needs_handler, silent_fail=silent_fail)
+        return partial(subcommand,
+                       needs_handler=needs_handler,
+                       silent_fail=silent_fail)
 
     @wraps(func)
     def wrapper(self, *args, **kwargs):
@@ -39,6 +40,7 @@ def subcommand(func=None, needs_handler=False, silent_fail=True):
                 self.echo_error('Semshi is not enabled in this buffer!')
             return
         func(self, *args, **kwargs)
+
     _subcommands[func.__name__] = wrapper
     return wrapper
 
@@ -135,13 +137,16 @@ class Plugin:
         for handler in self._handlers.values():
             handler.shutdown()
 
-    @pynvim.command('Semshi', nargs='*',  # type: ignore
-                    complete='customlist,SemshiComplete',
-                    sync=True)
+    @pynvim.command(
+        'Semshi',
+        nargs='*',  # type: ignore
+        complete='customlist,SemshiComplete',
+        sync=True,
+    )
     def cmd_semshi(self, args):
         if not args:
-            filetype = cast(pynvim.api.Buffer, self._vim.current.buffer
-                            ).options.get('filetype')
+            filetype = cast(pynvim.api.Buffer,
+                            self._vim.current.buffer).options.get('filetype')
             py_filetypes = self._vim.vars.get('semshi#filetypes', [])
             if filetype in py_filetypes:  # for python buffers
                 self._vim.command('Semshi status')
@@ -166,9 +171,10 @@ class Plugin:
     def _internal_eval(self, args):
         """Eval Python code in plugin context.
 
-        Only used for testing."""
-        plugin = self # noqa pylint: disable=unused-variable
-        return eval(args[0]) # pylint: disable=eval-used
+        Only used for testing.
+        """
+        plugin = self  # noqa pylint: disable=unused-variable
+        return eval(args[0])  # pylint: disable=eval-used
 
     @subcommand
     def enable(self):
@@ -239,7 +245,7 @@ class Plugin:
             'Semshi is {attached} on (bufnr={bufnr})',
             '- current handler: {handler}',
             '- handlers: {handlers}',
-            '- syntax error: {syntax_error}'
+            '- syntax error: {syntax_error}',
         ]).format(
             attached=attached and "attached" or "detached",
             bufnr=str(buffer.number),
@@ -360,5 +366,5 @@ class Options:
             return [hl_groups[g] for g in items]
         except KeyError as e:
             # TODO Use err_write instead?
-            raise ValueError(f'"{e.args[0]}" is an unknown highlight group.'
-                             ) from e
+            raise ValueError(
+                f'"{e.args[0]}" is an unknown highlight group.') from e
