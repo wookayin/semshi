@@ -1,9 +1,10 @@
 import os
-from semshi.parser import UnparsableError
 
 import pytest
 
-from .conftest import parse, dump_symtable
+from semshi.parser import UnparsableError
+
+from .conftest import dump_symtable, parse
 
 
 def test_multiple_files():

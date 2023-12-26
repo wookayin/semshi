@@ -1,4 +1,6 @@
 import ast
+import json
+import symtable
 from textwrap import dedent
 
 from semshi.parser import Parser
@@ -20,26 +22,31 @@ def make_tree(names):
         n['names'].append(node.symname)
     return root['top']
 
+
 def dump_dict(root):
-    import json
     print(json.dumps(root, indent=4))
 
+
 def dump_symtable(table_or_code):
-    import symtable
     if isinstance(table_or_code, str):
         table = symtable.symtable(dedent(table_or_code), '?', 'exec')
     else:
         table = table_or_code
+
     def visit_table(table, indent=0):
-        it = indent*' '
+        it = indent * ' '
         print(it, table)
         if isinstance(table, symtable.Class):
             print(table.get_methods())
         for symbol in table.get_symbols():
-            print((indent+4)*' ', symbol, symbol.is_namespace(), symbol.get_namespaces(), 'free', symbol.is_free(), 'local', symbol.is_local(), 'global', symbol.is_global())
+            print((indent + 4) * ' ', symbol, symbol.is_namespace(),
+                  symbol.get_namespaces(), 'free', symbol.is_free(), 'local',
+                  symbol.is_local(), 'global', symbol.is_global())
         for child in table.get_children():
-            visit_table(child, indent=indent+4)
+            visit_table(child, indent=indent + 4)
+
     visit_table(table)
+
 
 def dump_ast(node_or_code):
     if isinstance(node_or_code, str):
@@ -49,12 +56,14 @@ def dump_ast(node_or_code):
     tree = ast.dump(node)
     print(tree)
 
+
 def parse(code):
     add, remove = Parser().parse(dedent(code))
     assert len(remove) == 0
     for node in add:
         node.base_table()
     return add
+
 
 def make_parser(code):
     parser = Parser()
