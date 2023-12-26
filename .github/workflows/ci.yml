@@ -41,6 +41,13 @@ jobs:
         run: |
           python --version
 
+      - name: Enforce code style
+        run: |
+          pip install yapf isort
+          yapf --recursive --diff semshi/ test/
+          isort --check-only --diff semshi/ test/
+        if: ${{ matrix.python-version == '3.11' }}
+
       - name: Setup neovim
         run: |
           sudo apt install libfuse2
@@ -69,13 +76,6 @@ jobs:
       - name: Install dependencies
         run: |
           pip install pytest codecov pytest-cov
-          pip install pyproject-flake8
-
-      - name: Linting
-        run: |
-          pflake8 semshi/
-          # pylint semshi/
-        if: ${{ matrix.python-version == '3.11' }}
 
       - name: Run tests
         run: |

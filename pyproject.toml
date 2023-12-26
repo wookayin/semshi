@@ -22,6 +22,7 @@ profile = "black"
 single_line_exclusions = ['typing', 'typing_extensions']
 extra_standard_library = ['typing_extensions']
 known_third_party = []
+skip_glob = ['test/data/*.py']
 
 [tool.yapf]
 # see https://github.com/google/yapf#knobs
