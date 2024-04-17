@@ -8,10 +8,7 @@ if TYPE_CHECKING:
     from typing import Literal  # for py37
 
 from functools import partial, wraps
-import sys
-from functools import partial, wraps
 from typing import Optional, cast
-from functools import partial, wraps
 import sys
 
 import pynvim
@@ -164,7 +161,7 @@ class Plugin:
         try:
             func = _subcommands[args[0]]
         except KeyError:
-            self.echo_error("Subcommand not found: %s" % args[0])
+            self.echo_error('Subcommand not found: %s' % args[0])
             return
         func(self, *args[1:])
 
@@ -178,7 +175,8 @@ class Plugin:
     def _internal_eval(self, args):
         """Eval Python code in plugin context.
 
-        Only used for testing."""
+        Only used for testing.
+        """
         plugin = self # noqa pylint: disable=unused-variable
         return eval(args[0]) # pylint: disable=eval-used
 
@@ -251,7 +249,7 @@ class Plugin:
             'Semshi is {attached} on (bufnr={bufnr})',
             '- current handler: {handler}',
             '- handlers: {handlers}',
-            '- syntax error: {syntax_error}'
+            '- syntax error: {syntax_error}',
         ]).format(
             attached=attached and "attached" or "detached",
             bufnr=str(buffer.number),
