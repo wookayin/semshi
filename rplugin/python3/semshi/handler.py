@@ -39,7 +39,7 @@ class BufferHandler:
         self._vim = vim
         self._options = options
         self._buf_num = buf.number
-        self._parser = Parser(options.excluded_hl_groups, 
+        self._parser = Parser(options.excluded_hl_groups,
                               options.tolerate_syntax_errors)
         self._scheduled = False
         self._viewport_changed = False
@@ -254,7 +254,7 @@ class BufferHandler:
             self._update_error_indicator()
             return
         # Delay update to prevent the error sign from flashing while typing.
-        timer = threading.Timer(self._options.error_sign_delay, 
+        timer = threading.Timer(self._options.error_sign_delay,
                                 self._update_error_indicator)
         self._error_timer = timer
         timer.start()
@@ -288,7 +288,7 @@ class BufferHandler:
 
     def _place_sign(self, id, line, name):
         command = self._wrap_async(self._vim.command)
-        command('sign place %d line=%d name=%s buffer=%d' % 
+        command('sign place %d line=%d name=%s buffer=%d' %
                 (id, line, name, self._buf_num),
                 async_=True)
 
@@ -309,7 +309,7 @@ class BufferHandler:
         if not isinstance(node_or_nodes, list):
             buf.add_highlight(*node_or_nodes)
             return
-        self._call_atomic_async([("nvim_buf_add_highlight", (buf, *n)) 
+        self._call_atomic_async([('nvim_buf_add_highlight', (buf, *n)) 
                                  for n in node_or_nodes])
 
     @debug_time(None, lambda _, nodes: '%d nodes' % len(nodes))
@@ -322,9 +322,8 @@ class BufferHandler:
             return
         # Don't specify line range to clear explicitly because we can't
         # reliably determine the correct range
-        self._call_atomic_async(
-            [("nvim_buf_clear_highlight", (buf, *n)) for n in node_or_nodes]
-        )
+        self._call_atomic_async([("nvim_buf_clear_highlight", (buf, *n)) 
+                                 for n in node_or_nodes])
 
     def _call_atomic_async(self, calls):
         # Need to update in small batches to avoid
@@ -336,7 +335,7 @@ class BufferHandler:
             # (due to an asynchronous call), the buffer might be gone.
             # To avoid 'invalid buffer id' errors, we validate the buffer.
             if not self._vim.api.buf_is_valid(self._buf):
-                logger.debug('buffer %d was wiped out, skipping call_atomic', 
+                logger.debug('buffer %d was wiped out, skipping call_atomic',
                              self._buf)
                 return None
             return self._vim.api.call_atomic(call_chunk, **kwargs)
@@ -374,8 +373,8 @@ class BufferHandler:
             offset = 0
             line = lines[lineno - 1]
             for node in sorted(nodes_in_line, key=lambda n: n.col):
-                line = (line[: node.col + offset] + new_name + 
-                        line[node.col + len(node.name) + offset :])
+                line = (line[:node.col + offset] + new_name +
+                        line[node.col + len(node.name) + offset:])
                 offset += len(new_name) - len(node.name)
             self._buf[lineno - 1] = line
         self._vim.out_write('%d nodes renamed.\n' % num)
@@ -387,7 +386,6 @@ class BufferHandler:
             return
         # pylint: disable=import-outside-toplevel
         from ast import AsyncFunctionDef, ClassDef, FunctionDef
-
         here = tuple(self._vim.current.window.cursor)
         if what == 'name':
             cur_node = self._parser.node_at(here)
@@ -396,16 +394,16 @@ class BufferHandler:
             locs = sorted([
                 n.pos for n in self._parser.same_nodes(
                     cur_node, use_target=self._options.self_to_attribute)
-                ])
+            ])
         elif what == 'class':
             locs = self._parser.locations_by_node_types([
-                    ClassDef,
-                ])
+                ClassDef,
+            ])
         elif what == 'function':
             locs = self._parser.locations_by_node_types([
-                    FunctionDef,
-                    AsyncFunctionDef,
-                ])
+                FunctionDef,
+                AsyncFunctionDef,
+            ])
         elif what in hl_groups:
             locs = self._parser.locations_by_hl_group(hl_groups[what])
         else:
@@ -439,7 +437,6 @@ class BufferHandler:
                             len(self._parser.lines[error.lineno - 1])
                             )
                      ) - 1
-
         return (error.lineno, offset)
 
     def show_error(self):
@@ -447,7 +444,7 @@ class BufferHandler:
         if error is None:
             self._vim.out_write('No syntax error to show.\n')
             return
-        self._vim.out_write('Syntax error: %s (%d, %d)\n' % 
+        self._vim.out_write('Syntax error: %s (%d, %d)\n' %
                             (error.msg, error.lineno, error.offset))
 
     def shutdown(self):

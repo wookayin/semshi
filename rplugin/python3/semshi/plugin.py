@@ -7,10 +7,6 @@ from typing import TYPE_CHECKING, List, Optional, Sequence, cast
 if TYPE_CHECKING:
     from typing import Literal  # for py37
 
-from functools import partial, wraps
-from typing import Optional, cast
-import sys
-
 import pynvim
 import pynvim.api
 
@@ -44,6 +40,7 @@ def subcommand(func=None, needs_handler=False, silent_fail=True):
                 self.echo_error('Semshi is not enabled in this buffer!')
             return
         func(self, *args, **kwargs)
+
     _subcommands[func.__name__] = wrapper
     return wrapper
 
@@ -177,8 +174,8 @@ class Plugin:
 
         Only used for testing.
         """
-        plugin = self # noqa pylint: disable=unused-variable
-        return eval(args[0]) # pylint: disable=eval-used
+        plugin = self  # noqa pylint: disable=unused-variable
+        return eval(args[0])  # pylint: disable=eval-used
 
     @subcommand
     def enable(self):
