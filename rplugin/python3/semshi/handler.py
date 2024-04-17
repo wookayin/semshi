@@ -225,7 +225,7 @@ class BufferHandler:
         visible = []
         hidden = []
         for node in nodes:
-            for start, end in self._views:
+            for (start, end) in self._views:
                 if start <= node.lineno <= end:
                     visible.append(node)
                     break
