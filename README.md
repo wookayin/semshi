@@ -1,7 +1,7 @@
 # Semshi (A maintained fork)
 
 [![Build Status](https://github.com/wookayin/semshi/actions/workflows/ci.yml/badge.svg)](https://github.com/wookayin/semshi/actions)
-![Python Versions](https://img.shields.io/badge/python-3.7,%203.8,%203.9,%203.10,%203.11-blue.svg)
+![Python Versions](https://img.shields.io/badge/python-3.7,%203.8,%203.9,%203.10,%203.11,%203.12,%203.13-blue.svg)
 
 <!--[![codecov](https://codecov.io/gh/numirias/semshi/branch/master/graph/badge.svg)](https://codecov.io/gh/numirias/semshi)-->
 
