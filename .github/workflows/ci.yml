@@ -39,7 +39,7 @@ jobs:
 
       - name: Configure environments
         run: |
-          python --version
+          python3 --version
 
       - name: Enforce code style
         run: |
@@ -63,10 +63,12 @@ jobs:
           chmod +x $HOME/.local/bin/nvim
 
           if [ -n "${{ matrix.PYNVIM_MASTER }}" ]; then
-            pip install 'pynvim @ git+https://github.com/neovim/pynvim.git'
+            python3 -m pip install 'pynvim @ git+https://github.com/neovim/pynvim.git'
           else
-            pip install pynvim
+            python3 -m pip install pynvim
           fi
+          python3 -c 'import pynvim; print("__version__ =", pynvim.__version__)'
+          python3 -c 'import pynvim; print(pynvim.__file__)'
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Check neovim version
@@ -75,11 +77,11 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pytest codecov pytest-cov
+          python3 -m pip install pytest codecov pytest-cov
 
       - name: Run tests
         run: |
-          pytest -v --cov semshi/ --cov-report term-missing:skip-covered --ignore test/test_fuzz.py test/
+          pytest -xsv --cov semshi/ --cov-report term-missing:skip-covered --ignore test/test_fuzz.py test/
 
       - name: Test coverage
         run: codecov

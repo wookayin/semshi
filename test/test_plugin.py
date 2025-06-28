@@ -19,11 +19,19 @@ def plugin_dir(tmpdir_factory):
     return tmpdir_factory.mktemp('test_plugin')
 
 
+NVIM_ARGV = [
+    'nvim', '-i', 'NONE', '--embed', '--headless', '--cmd',
+    'let g:python3_host_prog="{}"'.format(sys.executable), '-u', VIMRC
+]
+
+
 @pytest.fixture(scope='module', autouse=True)
 def register_plugin(plugin_dir):
-    os.environ['NVIM_RPLUGIN_MANIFEST'] = str(plugin_dir.join('rplugin.vim'))
-    child_argv = ['nvim', '-u', VIMRC, '--embed', '--headless']
-    vim = pynvim.attach('child', argv=child_argv)
+    rplugin_manifest = str(plugin_dir.join('rplugin.vim'))
+    os.environ['NVIM_RPLUGIN_MANIFEST'] = rplugin_manifest
+    vim = pynvim.attach('child', argv=NVIM_ARGV)
+
+    vim.command("python3 print(sys.executable)")
     vim.command('UpdateRemotePlugins')
     vim.quit()
     yield
@@ -59,12 +67,6 @@ class WrappedVim:
                 'plugin._cur_handler._update_thread.is_alive()'),
             lambda x: not x,
         )
-
-
-NVIM_ARGV = [
-    'nvim', '-i', 'NONE', '--embed', '--headless', '--cmd',
-    'let g:python3_host_prog="{}"'.format(sys.executable), '-u', VIMRC
-]
 
 
 @pytest.fixture(scope='function')
