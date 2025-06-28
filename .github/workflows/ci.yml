@@ -20,10 +20,10 @@ jobs:
             os: ubuntu-latest
           - python-version: "3.11"
             os: ubuntu-latest
-          - python-version: "3.12-dev"
+          - python-version: "3.12"
             os: ubuntu-latest
-            neovim-version: nightly
-            PYNVIM_MASTER: true
+          # neovim-version: nightly
+          # PYNVIM_MASTER: true
 
     steps:
       - uses: actions/checkout@v2
@@ -56,7 +56,7 @@ jobs:
           if [ -z "$NVIM_VERSION" ]; then
             NVIM_VERSION="stable"
           fi
-          NVIM_DOWNLOAD_URL="https://github.com/neovim/neovim/releases/download/${NVIM_VERSION}/nvim.appimage"
+          NVIM_DOWNLOAD_URL="https://github.com/neovim/neovim/releases/download/${NVIM_VERSION}/nvim-linux-x86_64.appimage"
 
           mkdir -p $HOME/.local/bin
           wget -O $HOME/.local/bin/nvim $NVIM_DOWNLOAD_URL
