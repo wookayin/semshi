@@ -127,7 +127,12 @@ class Visitor:
         # Either make a new block scope...
         if type_ in BLOCKS:
             current_table = self._table_stack.pop()
-            self._table_stack += reversed(current_table.get_children())
+            # The order of children symtables is not guaranteed and in fact
+            # differs between CPython 3.13+ and prior versions. Sorting them in
+            # the order they appear ensures consistency with AST visitation.
+            children = sorted(current_table.get_children(),
+                              key=lambda st: st.get_lineno())
+            self._table_stack += reversed(children)
             self._env.append(current_table)
             self._cur_env = self._env[:]
             if type_ in FUNCTION_BLOCKS:
@@ -179,9 +184,15 @@ class Visitor:
         for child in node.body:
             self.visit(child)
         del node.body
+        for child in node.handlers:
+            self.visit(child)
+        del node.handlers
         for child in node.orelse:
             self.visit(child)
         del node.orelse
+        for child in node.finalbody:
+            self.visit(child)
+        del node.finalbody
 
     def _visit_except(self, node):
         """Visit except branch."""
