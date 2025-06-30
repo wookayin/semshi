@@ -1027,6 +1027,40 @@ def test_match_case():
     ''')
 
 
+@pytest.mark.skipif('sys.version_info < (3, 12)')
+def test_type_statement():
+    # https://peps.python.org/pep-0695/
+    names = parse('''
+        #!/usr/bin/env python3
+        type MyList[T] = list[T]
+        #           ^typevar  ^ a resolved reference (treated like a closure)
+        # TODO default value is 3.13+
+
+        class A:
+            pass
+
+        def foo():
+            mylist: MyList[int] = [1, 2, 3]
+            # ^^^^ -> type statements used to break environment scope
+            assert len(mylist) == 3
+    ''')
+    expected = [
+        # type statement
+        *[('MyList', GLOBAL), ('T', LOCAL), ('list', BUILTIN), ('T', FREE)],
+        # class A:
+        ('A', GLOBAL),
+        # def foo():
+        *[
+            ('foo', GLOBAL),
+            # mylist: Mylist[int]
+            *[('mylist', LOCAL), ('MyList', GLOBAL), ('int', BUILTIN)],
+            # assert len(mylist) == 3
+            *[('len', BUILTIN), ('mylist', LOCAL)],
+        ],
+    ]
+    assert [(n.name, n.hl_group) for n in names] == expected
+
+
 class TestNode:
 
     def test_node(self):

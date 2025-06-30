@@ -9,6 +9,12 @@ from tokenize import tokenize
 from .node import ATTRIBUTE, IMPORTED, PARAMETER_UNUSED, SELF, Node
 from .util import debug_time
 
+# PEP-695 type statement (Python 3.12+)
+if sys.version_info >= (3, 12):
+    TYPE_VARS = (ast.TypeVar, ast.ParamSpec, ast.TypeVarTuple)
+else:
+    TYPE_VARS = ()
+
 # Node types which introduce a new scope and child symboltable
 BLOCKS = (
     ast.Module,
@@ -22,10 +28,7 @@ if sys.version_info < (3, 12):
     # PEP-709: comprehensions no longer have dedicated stack frames; the
     # comprehension's local will be included in the parent function's symtable
     # (Note: generator expressions are excluded in Python 3.12)
-    BLOCKS = tuple(\
-        list(BLOCKS) +
-        [ast.ListComp, ast.DictComp, ast.SetComp]
-    )
+    BLOCKS = tuple([*BLOCKS, ast.ListComp, ast.DictComp, ast.SetComp])
 
 FUNCTION_BLOCKS = (ast.FunctionDef, ast.Lambda, ast.AsyncFunctionDef)
 
@@ -92,6 +95,9 @@ class Visitor:
         if type_ is ast.Name:
             self._new_name(node)
             return
+        if type_ in TYPE_VARS:  # handle type variables (Python 3.12+)
+            self._visit_typevar(node)
+            return
         if type_ is ast.Attribute:
             self._add_attribute(node)
             self.visit(node.value)
@@ -117,6 +123,9 @@ class Visitor:
             self._visit_global_nonlocal(node, keyword)
         elif type_ is ast.keyword:
             pass
+        elif TYPE_VARS and type_ is ast.TypeAlias:  # Python 3.12+
+            self._visit_type(node)
+            return  # scope already handled
 
         if type_ in (ast.FunctionDef, ast.ClassDef, ast.AsyncFunctionDef):
             self._visit_class_function_definition(node)
@@ -381,6 +390,31 @@ class Visitor:
             if more:
                 # ...advance to next comma.
                 advance(tokens, ',', OP)
+
+    def _visit_type(self, node):
+        """Visit type statement (PEP-695)."""
+        # e.g. type MyList[T_var] = list[T_var]
+        #           ^^^^^^ ^^^^^         ^ reference to typevar
+        #           name   typevar
+        # Visit alias name in the outer scope
+        self.visit(node.name)
+
+        # The type statement has two variable scopes: one for typevar,
+        # and another one (a child scope) for the rhs
+        with self._enter_scope():
+            for p in node.type_params:
+                self.visit(p)
+            with self._enter_scope():
+                self.visit(node.value)
+
+    def _visit_typevar(self, node):
+        self.nodes.append(
+            Node(
+                node.name,
+                node.lineno,
+                node.col_offset,
+                self._cur_env,
+            ))
 
     def _mark_self(self, node):
         """Mark self/cls argument if the current function has one.
