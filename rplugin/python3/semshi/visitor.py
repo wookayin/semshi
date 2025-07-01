@@ -1,5 +1,6 @@
 # pylint: disable=unidiomatic-typecheck
 import ast
+import contextlib
 import sys
 from itertools import count
 from token import NAME, OP
@@ -126,33 +127,39 @@ class Visitor:
                 self._mark_self(node)
         # Either make a new block scope...
         if type_ in BLOCKS:
-            current_table = self._table_stack.pop()
-            # The order of children symtables is not guaranteed and in fact
-            # differs between CPython 3.13+ and prior versions. Sorting them in
-            # the order they appear ensures consistency with AST visitation.
-            children = sorted(current_table.get_children(),
-                              key=lambda st: st.get_lineno())
-            self._table_stack += reversed(children)
-            self._env.append(current_table)
-            self._cur_env = self._env[:]
-            if type_ in FUNCTION_BLOCKS:
-                current_table.unused_params = {}
-                self._iter_node(node)
-                # Set the hl group of all parameters that didn't appear in the
-                # function body to "unused parameter".
-                for param in current_table.unused_params.values():
-                    if param.hl_group == SELF:
-                        # SELF args should never be shown as unused
-                        continue
-                    param.hl_group = PARAMETER_UNUSED
-                    param.update_tup()
-            else:
-                self._iter_node(node)
-            self._env.pop()
-            self._cur_env = self._env[:]
-        # ...or just iterate through the node's attributes.
+            with self._enter_scope() as current_table:
+                if type_ in FUNCTION_BLOCKS:
+                    current_table.unused_params = {}
+                    self._iter_node(node)
+                    # Set the hl group of all parameters that didn't appear in the
+                    # function body to "unused parameter".
+                    for param in current_table.unused_params.values():
+                        if param.hl_group == SELF:
+                            # SELF args should never be shown as unused
+                            continue
+                        param.hl_group = PARAMETER_UNUSED
+                        param.update_tup()
+                else:
+                    self._iter_node(node)
+        # ...or just iterate through the node's (remaining) attributes.
         else:
             self._iter_node(node)
+
+    @contextlib.contextmanager
+    def _enter_scope(self):
+        # Enter a local lexical variable scope (env represented by symtables).
+        current_table = self._table_stack.pop()
+        # The order of children symtables is not guaranteed and in fact
+        # differs between CPython 3.13+ and prior versions. Sorting them in
+        # the order they appear ensures consistency with AST visitation.
+        children = sorted(current_table.get_children(),
+                          key=lambda st: st.get_lineno())
+        self._table_stack += reversed(children)
+        self._env.append(current_table)
+        self._cur_env = self._env[:]
+        yield current_table
+        self._env.pop()
+        self._cur_env = self._env[:]
 
     def _new_name(self, node):
         self.nodes.append(Node(
