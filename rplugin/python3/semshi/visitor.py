@@ -15,6 +15,8 @@ if sys.version_info >= (3, 12):
 else:
     TYPE_VARS = ()
 
+HAS_PY313 = sys.version_info >= (3, 13)
+
 # Node types which introduce a new scope and child symboltable
 BLOCKS = (
     ast.Module,
@@ -408,6 +410,7 @@ class Visitor:
                 self.visit(node.value)
 
     def _visit_typevar(self, node):
+        # node: ast.TypeVar | ast.ParamSpec | ast.TypeVarTuple
         self.nodes.append(
             Node(
                 node.name,
@@ -415,6 +418,20 @@ class Visitor:
                 node.col_offset,
                 self._cur_env,
             ))
+
+        # When a TypeVar has a bound or a default value,
+        # e.g. `T: T_Bound = T_Default`, each expression (bound and/or default)
+        # introduces a new inner lexical scope for the type variable.
+        bound = node.bound if type(node) is ast.TypeVar else None
+        default_value = node.default_value if HAS_PY313 else None
+
+        if bound:
+            with self._enter_scope():
+                self.visit(bound)
+
+        if default_value:
+            with self._enter_scope():
+                self.visit(default_value)
 
     def _mark_self(self, node):
         """Mark self/cls argument if the current function has one.

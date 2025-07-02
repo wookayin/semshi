@@ -1028,13 +1028,12 @@ def test_match_case():
 
 
 @pytest.mark.skipif('sys.version_info < (3, 12)')
-def test_type_statement():
+def test_type_statement_py312():
     # https://peps.python.org/pep-0695/
     names = parse('''
         #!/usr/bin/env python3
         type MyList[T] = list[T]
         #           ^typevar  ^ a resolved reference (treated like a closure)
-        # TODO default value is 3.13+
 
         class A:
             pass
@@ -1054,6 +1053,53 @@ def test_type_statement():
             ('foo', GLOBAL),
             # mylist: Mylist[int]
             *[('mylist', LOCAL), ('MyList', GLOBAL), ('int', BUILTIN)],
+            # assert len(mylist) == 3
+            *[('len', BUILTIN), ('mylist', LOCAL)],
+        ],
+    ]
+    assert [(n.name, n.hl_group) for n in names] == expected
+
+
+@pytest.mark.skipif('sys.version_info < (3, 13)')
+def test_type_statement_py313():
+    """type statement with bound (3.12+) and default (3.13+) parameters."""
+    # https://peps.python.org/pep-0695/
+    names = parse('''
+        #!/usr/bin/env python3
+        type Alias1[T, P] = list[P] | set[T]
+        type Alias2[T, P: type[T]] = list[P] | set[T]
+        type Alias3[T, P = T] = list[P] | set[T]
+        type Alias4[T: int, P: int = bool | T] = list[P] | set[T]
+
+        def foo():
+            mylist: list[int] = [1, 2, 3]
+            assert len(mylist) == 3
+    ''')
+    RHS_listP_or_setT = [
+        *[('list', BUILTIN), ('P', FREE)],
+        *[('set', BUILTIN), ('T', FREE)],
+    ]
+    expected = [
+        # Alias1
+        *[('Alias1', GLOBAL), ('T', LOCAL), ('P', LOCAL), *RHS_listP_or_setT],
+        # Alias2: bound (P: type[T])
+        *[('Alias2', GLOBAL), ('T', LOCAL), ('P', LOCAL), ('type', BUILTIN),
+          ('T', FREE), *RHS_listP_or_setT],
+        # Alias3: default
+        *[('Alias3', GLOBAL), ('T', LOCAL), ('P', LOCAL),
+          ('T', FREE), *RHS_listP_or_setT],
+        # Alias4: bound and  default
+        *[
+            ('Alias4', GLOBAL),  # ...
+            *[('T', LOCAL), ('int', BUILTIN)],
+            *[('P', LOCAL), ('int', BUILTIN), ('bool', BUILTIN), ('T', FREE)],
+            *RHS_listP_or_setT
+        ],
+        # remaining stuff, def foo(): ... should be unaffected
+        *[
+            ('foo', GLOBAL),
+            # mylist: Mylist[int]
+            *[('mylist', LOCAL), ('list', BUILTIN), ('int', BUILTIN)],
             # assert len(mylist) == 3
             *[('len', BUILTIN), ('mylist', LOCAL)],
         ],
