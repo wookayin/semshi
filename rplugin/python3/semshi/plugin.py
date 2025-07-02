@@ -94,10 +94,11 @@ class Plugin:
     # buffer handler is completed before other events are handled.
     @pynvim.function('SemshiBufEnter', sync=True)
     def event_buf_enter(self, args):
-        buf_num, view_start, view_stop = args
-        self._select_handler(buf_num)
+        """Setup handler for current buffer when entering it"""
+        bufnr, viewports = args
+        self._select_and_save_handler(bufnr)
         assert self._cur_handler is not None
-        self._update_viewport(view_start, view_stop)
+        self._update_viewports(viewports)
         self._cur_handler.update()
         self._mark_selected()
 
@@ -111,7 +112,7 @@ class Plugin:
 
     @pynvim.function('SemshiVimResized', sync=False)
     def event_vim_resized(self, args):
-        self._update_viewport(*args)
+        self._update_viewports(*args)
         self._mark_selected()
 
     @pynvim.function('SemshiCursorMoved', sync=False)
@@ -121,7 +122,7 @@ class Plugin:
             # we didn't enter it yet.
             self.event_buf_enter((self._vim.current.buffer.number, *args))
             return
-        self._update_viewport(*args)
+        self._update_viewports(*args)
         self._mark_selected()
 
     @pynvim.function('SemshiTextChanged', sync=False)
@@ -181,8 +182,8 @@ class Plugin:
         if self._disabled:
             return
         self._attach_listeners()
-        self._select_handler(self._vim.current.buffer)
-        self._update_viewport(*self._vim.eval('[line("w0"), line("w$")]'))
+        self._select_and_save_handler(self._vim.current.buffer.number)
+        self._update_viewports(self._vim.eval('v:lua._semshi_get_viewports()'))
         self.highlight()
 
     @subcommand(needs_handler=True)
@@ -254,22 +255,15 @@ class Plugin:
             syntax_error=syntax_error,
         ))
 
-    def _select_handler(self, buf_or_buf_num):
-        """Select handler for `buf_or_buf_num`."""
-        if isinstance(buf_or_buf_num, int):
-            buf = None
-            buf_num = buf_or_buf_num
-        else:
-            buf = buf_or_buf_num
-            buf_num = buf.number
+    def _select_and_save_handler(self, buffer_number):
+        """Select handler for `buffer_number`."""
         try:
-            handler = self._handlers[buf_num]
+            handler = self._handlers[buffer_number]
         except KeyError:
-            if buf is None:
-                buf = self._vim.buffers[buf_num]
+            buf = self._vim.buffers[buffer_number]
             assert self._options is not None, "must have been initialized"
             handler = BufferHandler(buf, self._vim, self._options)
-            self._handlers[buf_num] = handler
+            self._handlers[buffer_number] = handler
         self._cur_handler = handler
 
     def _remove_handler(self, buf_or_buf_num):
@@ -285,9 +279,16 @@ class Plugin:
         else:
             handler.shutdown()
 
-    def _update_viewport(self, start, stop):
-        if self._cur_handler:
-            self._cur_handler.viewport(start, stop)
+    def _update_viewports(self, viewports):
+        """Send viewports to handler so it can do proper updates
+
+        Does nothing if handler hasn't been assigned
+        see self._select_and_save_handler()
+        """
+        if not self._cur_handler:
+            return
+
+        self._cur_handler.set_viewports(viewports)
 
     def _mark_selected(self):
         assert self._options is not None, "must have been initialized"

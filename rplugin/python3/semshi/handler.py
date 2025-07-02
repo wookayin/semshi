@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import threading
 import time
 from collections import defaultdict
@@ -18,6 +19,14 @@ ERROR_SIGN_ID = 314000
 ERROR_HL_ID = 313000
 
 
+@dataclasses.dataclass(frozen=True)
+class ViewPort:
+    """Start-end line of a window for (this) buffer"""
+
+    start: int
+    end: int
+
+
 class BufferHandler:
     """Handler for a buffer.
 
@@ -34,7 +43,10 @@ class BufferHandler:
                               options.tolerate_syntax_errors)
         self._scheduled = False
         self._viewport_changed = False
-        self._view = (0, 0)
+
+        # note: _views are guaranteed to be raster-sorted per self.set_viewports()
+        self._views = []
+
         self._update_thread = None
         self._error_timer = None
         self._indicated_syntax_error = None
@@ -43,20 +55,28 @@ class BufferHandler:
         self._pending_nodes = []
         # Nodes which are currently marked as a selected. We keep track of them
         # to check if they haven't changed between updates.
-        self._selected_nodes = []
+        self._selected_nodes = set()
 
     def __repr__(self):
         return '<BufferHandler(%d)>' % self._buf_num
 
     def print(self, s):
         """A debugging utility to print something into neovim's stdout."""
-        self._vim.async_call(self._vim.api.out_write, str(s) + '\n')
+        self._vim.async_call(self._vim.api.out_write, str(s) + "\n")
 
-    def viewport(self, start, stop):
-        """Set viewport to line range from `start` to `stop` and add highlights
-        that have become visible."""
-        range = stop - start
-        self._view = (start - range, stop + range)
+    def set_viewports(self, viewports):
+        """Set viewports to line range from `start` to `stop` and add highlights
+        that have become visible.
+
+        Ensures self._views are sorted"""
+        views = []
+        for viewport in viewports:
+            start = viewport["start"]
+            stop = viewport["end"]
+            range = stop - start
+            views.append((start - range, stop + range))
+        views.sort()
+        self._views = views
         # If the update thread is running, we defer addding visible highlights
         # for the new viewport to after the update loop is done.
         if self._update_thread is not None and self._update_thread.is_alive():
@@ -98,10 +118,16 @@ class BufferHandler:
         if not self._options.mark_selected_nodes:
             return
         mark_original = bool(self._options.mark_selected_nodes - 1)
-        nodes = self._parser.same_nodes(cursor, mark_original,
-                                        self._options.self_to_attribute)
-        start, stop = self._view
-        nodes = [n for n in nodes if start <= n.lineno <= stop]
+        parser_same_nodes = self._parser.same_nodes(
+            cursor, mark_original, self._options.self_to_attribute
+        )
+        nodes = set()
+        for node in parser_same_nodes:
+            for start, stop in self._views:
+                if start <= node.lineno <= stop:
+                    nodes.add(node)
+                    break
+
         if nodes == self._selected_nodes:
             return
         self._selected_nodes = nodes
@@ -196,12 +222,13 @@ class BufferHandler:
 
     def _visible_and_hidden(self, nodes):
         """Bisect nodes into visible and hidden ones."""
-        start, end = self._view
         visible = []
         hidden = []
         for node in nodes:
-            if start <= node.lineno <= end:
-                visible.append(node)
+            for (start, end) in self._views:
+                if start <= node.lineno <= end:
+                    visible.append(node)
+                    break
             else:
                 hidden.append(node)
         return visible, hidden
@@ -282,7 +309,7 @@ class BufferHandler:
         if not isinstance(node_or_nodes, list):
             buf.add_highlight(*node_or_nodes)
             return
-        self._call_atomic_async([('nvim_buf_add_highlight', (buf, *n))
+        self._call_atomic_async([('nvim_buf_add_highlight', (buf, *n)) 
                                  for n in node_or_nodes])
 
     @debug_time(None, lambda _, nodes: '%d nodes' % len(nodes))
@@ -295,7 +322,7 @@ class BufferHandler:
             return
         # Don't specify line range to clear explicitly because we can't
         # reliably determine the correct range
-        self._call_atomic_async([('nvim_buf_clear_highlight', (buf, *n))
+        self._call_atomic_async([("nvim_buf_clear_highlight", (buf, *n)) 
                                  for n in node_or_nodes])
 
     def _call_atomic_async(self, calls):
