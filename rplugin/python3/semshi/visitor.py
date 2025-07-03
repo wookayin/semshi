@@ -1,5 +1,6 @@
 # pylint: disable=unidiomatic-typecheck
 import ast
+import contextlib
 import sys
 from itertools import count
 from token import NAME, OP
@@ -7,6 +8,14 @@ from tokenize import tokenize
 
 from .node import ATTRIBUTE, IMPORTED, PARAMETER_UNUSED, SELF, Node
 from .util import debug_time
+
+# PEP-695 type statement (Python 3.12+)
+if sys.version_info >= (3, 12):
+    TYPE_VARS = (ast.TypeVar, ast.ParamSpec, ast.TypeVarTuple)
+else:
+    TYPE_VARS = ()
+
+HAS_PY313 = sys.version_info >= (3, 13)
 
 # Node types which introduce a new scope and child symboltable
 BLOCKS = (
@@ -21,10 +30,7 @@ if sys.version_info < (3, 12):
     # PEP-709: comprehensions no longer have dedicated stack frames; the
     # comprehension's local will be included in the parent function's symtable
     # (Note: generator expressions are excluded in Python 3.12)
-    BLOCKS = tuple(\
-        list(BLOCKS) +
-        [ast.ListComp, ast.DictComp, ast.SetComp]
-    )
+    BLOCKS = tuple([*BLOCKS, ast.ListComp, ast.DictComp, ast.SetComp])
 
 FUNCTION_BLOCKS = (ast.FunctionDef, ast.Lambda, ast.AsyncFunctionDef)
 
@@ -91,6 +97,9 @@ class Visitor:
         if type_ is ast.Name:
             self._new_name(node)
             return
+        if type_ in TYPE_VARS:  # handle type variables (Python 3.12+)
+            self._visit_typevar(node)
+            return
         if type_ is ast.Attribute:
             self._add_attribute(node)
             self.visit(node.value)
@@ -116,6 +125,9 @@ class Visitor:
             self._visit_global_nonlocal(node, keyword)
         elif type_ is ast.keyword:
             pass
+        elif TYPE_VARS and type_ is ast.TypeAlias:  # Python 3.12+
+            self._visit_type(node)
+            return  # scope already handled
 
         if type_ in (ast.FunctionDef, ast.ClassDef, ast.AsyncFunctionDef):
             self._visit_class_function_definition(node)
@@ -126,33 +138,39 @@ class Visitor:
                 self._mark_self(node)
         # Either make a new block scope...
         if type_ in BLOCKS:
-            current_table = self._table_stack.pop()
-            # The order of children symtables is not guaranteed and in fact
-            # differs between CPython 3.13+ and prior versions. Sorting them in
-            # the order they appear ensures consistency with AST visitation.
-            children = sorted(current_table.get_children(),
-                              key=lambda st: st.get_lineno())
-            self._table_stack += reversed(children)
-            self._env.append(current_table)
-            self._cur_env = self._env[:]
-            if type_ in FUNCTION_BLOCKS:
-                current_table.unused_params = {}
-                self._iter_node(node)
-                # Set the hl group of all parameters that didn't appear in the
-                # function body to "unused parameter".
-                for param in current_table.unused_params.values():
-                    if param.hl_group == SELF:
-                        # SELF args should never be shown as unused
-                        continue
-                    param.hl_group = PARAMETER_UNUSED
-                    param.update_tup()
-            else:
-                self._iter_node(node)
-            self._env.pop()
-            self._cur_env = self._env[:]
-        # ...or just iterate through the node's attributes.
+            with self._enter_scope() as current_table:
+                if type_ in FUNCTION_BLOCKS:
+                    current_table.unused_params = {}
+                    self._iter_node(node)
+                    # Set the hl group of all parameters that didn't appear in the
+                    # function body to "unused parameter".
+                    for param in current_table.unused_params.values():
+                        if param.hl_group == SELF:
+                            # SELF args should never be shown as unused
+                            continue
+                        param.hl_group = PARAMETER_UNUSED
+                        param.update_tup()
+                else:
+                    self._iter_node(node)
+        # ...or just iterate through the node's (remaining) attributes.
         else:
             self._iter_node(node)
+
+    @contextlib.contextmanager
+    def _enter_scope(self):
+        # Enter a local lexical variable scope (env represented by symtables).
+        current_table = self._table_stack.pop()
+        # The order of children symtables is not guaranteed and in fact
+        # differs between CPython 3.13+ and prior versions. Sorting them in
+        # the order they appear ensures consistency with AST visitation.
+        children = sorted(current_table.get_children(),
+                          key=lambda st: st.get_lineno())
+        self._table_stack += reversed(children)
+        self._env.append(current_table)
+        self._cur_env = self._env[:]
+        yield current_table
+        self._env.pop()
+        self._cur_env = self._env[:]
 
     def _new_name(self, node):
         self.nodes.append(Node(
@@ -374,6 +392,46 @@ class Visitor:
             if more:
                 # ...advance to next comma.
                 advance(tokens, ',', OP)
+
+    def _visit_type(self, node):
+        """Visit type statement (PEP-695)."""
+        # e.g. type MyList[T_var] = list[T_var]
+        #           ^^^^^^ ^^^^^         ^ reference to typevar
+        #           name   typevar
+        # Visit alias name in the outer scope
+        self.visit(node.name)
+
+        # The type statement has two variable scopes: one for typevar,
+        # and another one (a child scope) for the rhs
+        with self._enter_scope():
+            for p in node.type_params:
+                self.visit(p)
+            with self._enter_scope():
+                self.visit(node.value)
+
+    def _visit_typevar(self, node):
+        # node: ast.TypeVar | ast.ParamSpec | ast.TypeVarTuple
+        self.nodes.append(
+            Node(
+                node.name,
+                node.lineno,
+                node.col_offset,
+                self._cur_env,
+            ))
+
+        # When a TypeVar has a bound or a default value,
+        # e.g. `T: T_Bound = T_Default`, each expression (bound and/or default)
+        # introduces a new inner lexical scope for the type variable.
+        bound = node.bound if type(node) is ast.TypeVar else None
+        default_value = node.default_value if HAS_PY313 else None
+
+        if bound:
+            with self._enter_scope():
+                self.visit(bound)
+
+        if default_value:
+            with self._enter_scope():
+                self.visit(default_value)
 
     def _mark_self(self, node):
         """Mark self/cls argument if the current function has one.
