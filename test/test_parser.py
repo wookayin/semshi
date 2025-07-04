@@ -1028,6 +1028,29 @@ def test_match_case():
 
 
 @pytest.mark.skipif('sys.version_info < (3, 12)')
+def test_generic_syntax():
+    names = parse('''
+        #!/usr/bin/env python3
+        def get_first[T: float](data: list[T]) -> T:
+            first: T = data[0]
+            return first
+    ''')
+
+    expected = [
+        ('get_first', MODULE_FUNC),
+        *[('T', LOCAL), ('float', BUILTIN)],  # TypeVar with bound (T: float)
+        *[('list', BUILTIN), ('T', LOCAL)],  # list[T]
+        ('T', LOCAL),  # -> T:
+        # for now, arg name is visited *after* params and type annotations
+        # because of the way how variable scope is handled
+        ('data', PARAMETER),
+        *[('first', LOCAL), ('T', FREE), ('data', PARAMETER)],
+        ('first', LOCAL),  # return ...
+    ]
+    assert [(n.name, n.hl_group) for n in names] == expected
+
+
+@pytest.mark.skipif('sys.version_info < (3, 12)')
 def test_type_statement_py312():
     # https://peps.python.org/pep-0695/
     names = parse('''

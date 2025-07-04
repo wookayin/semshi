@@ -131,11 +131,7 @@ class Visitor:
 
         if type_ in (ast.FunctionDef, ast.ClassDef, ast.AsyncFunctionDef):
             self._visit_class_function_definition(node)
-            if type_ is ast.ClassDef:
-                self._visit_class_meta(node)
-            else:
-                self._visit_args(node)
-                self._mark_self(node)
+
         # Either make a new block scope...
         if type_ in BLOCKS:
             with self._enter_scope() as current_table:
@@ -256,6 +252,7 @@ class Visitor:
         self._visit_args_pre38(node)
 
     def _visit_args_pre38(self, node):
+        # args: ast.arguments
         args = node.args
         for arg in args.args + args.kwonlyargs + [args.vararg, args.kwarg]:
             if arg is None:
@@ -338,6 +335,7 @@ class Visitor:
         We need to use the tokenizer here for the same reason as in
         _visit_import (no line/col for names in class/function definitions).
         """
+        # node: ast.FunctionDef | ast.ClassDef | ast.AsyncFunctionDef
         decorators = node.decorator_list
         for decorator in decorators:
             self.visit(decorator)
@@ -358,6 +356,23 @@ class Visitor:
             lineno = token.start[0] + line_idx
             column = token.start[1]
         self.nodes.append(Node(node.name, lineno, column, self._cur_env))
+
+        # Handling type parameters & generic syntax (Python 3.12+)
+        # When generic type vars are present, a new scope is added
+        _type_params = node.type_params if TYPE_VARS else None
+        with (self._enter_scope() if _type_params  # ...
+              else contextlib.nullcontext()):
+            if _type_params:
+                for p in _type_params:
+                    self.visit(p)
+                del node.type_params  # Don't visit again later
+
+            # Visit class meta (parent class), argument type hints, etc.
+            if type(node) is ast.ClassDef:
+                self._visit_class_meta(node)
+            else:
+                self._visit_args(node)
+                self._mark_self(node)
 
     def _visit_global_nonlocal(self, node, keyword):
         line_idx = node.lineno - 1
