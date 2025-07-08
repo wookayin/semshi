@@ -416,9 +416,11 @@ class Visitor:
         # Visit alias name in the outer scope
         self.visit(node.name)
 
-        # The type statement has two variable scopes: one for typevar,
+        # The type statement has two variable scopes: one for typevar (if any),
         # and another one (a child scope) for the rhs
-        with self._enter_scope():
+        maybe_scope = (self._enter_scope() if node.type_params \
+                       else contextlib.nullcontext())
+        with maybe_scope:
             for p in node.type_params:
                 self.visit(p)
             with self._enter_scope():

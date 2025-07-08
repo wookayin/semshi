@@ -1055,6 +1055,7 @@ def test_type_statement_py312():
     # https://peps.python.org/pep-0695/
     names = parse('''
         #!/usr/bin/env python3
+        type IntList = list[int]  # non-generic case
         type MyList[T] = list[T]
         #           ^typevar  ^ a resolved reference (treated like a closure)
 
@@ -1067,7 +1068,9 @@ def test_type_statement_py312():
             assert len(mylist) == 3
     ''')
     expected = [
-        # type statement
+        # non-generic type statement
+        *[('IntList', GLOBAL), ('list', BUILTIN), ('int', BUILTIN)],
+        # generic type statement
         *[('MyList', GLOBAL), ('T', LOCAL), ('list', BUILTIN), ('T', FREE)],
         # class A:
         ('A', GLOBAL),
