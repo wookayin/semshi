@@ -207,7 +207,8 @@ No. Semshi relies on Neovim's fast highlighting API to quickly update lots of hi
 
 No. [Migrate your old python code!](https://pythonclock.org/)
 
-We require Python >= 3.6. Regarding old version support, see [#19](https://github.com/numirias/semshi/issues/19) for the original repository's discussion.
+We require **Python >= 3.7**.
+Please note that the python interpreter being used by semshi is [the python3 rplugin provider](https://neovim.io/doc/user/provider.html#provider-python), i.e. see `g:python3_host_prog`.
 
 ### Semshi is too slow.
 
