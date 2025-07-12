@@ -7,9 +7,14 @@
 
 Semshi provides semantic highlighting for Python in Neovim.
 
-*This is a maintained fork of [the original repository, numirias/semshi](https://github.com/numirias/semshi), which has been not maintained since 2021. Please watch [the tracking issue](https://github.com/wookayin/semshi/issues/1) for what has been updated in this fork.*
+> [!NOTE]
+> This is a maintained fork of [the original repository, numirias/semshi](https://github.com/numirias/semshi), which has been abandoned since 2021.
+> Please see [release notes](https://github.com/wookayin/semshi/releases) to what has been changed and updated in this fork.
 
-*There is also [basedpyright](https://github.com/DetachHead/basedpyright), a python language server that natively support LSP's semantic tokens.*
+> [!NOTE]
+> For [LSP-based semantic highlight](https://neovim.io/doc/user/lsp.html#lsp-semantic-highlight), I strongly recommend
+> [basedpyright](https://github.com/DetachHead/basedpyright), a Python language server that natively support LSP's semantic tokens, in place of semshi.
+
 
 Unlike regex-based syntax highlighters, Semshi understands Python code and performs static analysis as you type. It builds a syntax tree and symbol tables to highlight names based on their scope and context. This makes code easier to read and lets you quickly identify missing imports, unused arguments, misspelled names, and more.
 
