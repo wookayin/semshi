@@ -5,11 +5,14 @@ from setuptools import setup
 setup(
     name='semshi',
     description='Semantic Highlighting for Python in Neovim',
+    version='0.4.0',
     packages=['semshi'],
-    author='numirias',
-    author_email='numirias@users.noreply.github.com',
-    version='0.3.0.dev0',
-    url='https://github.com/numirias/semshi',
+    # Original repo: https://github.com/numirias/semshi
+    # author='numirias',
+    # author_email='numirias@users.noreply.github.com',
+    author='wookayin',
+    author_email='wookayin@gmail.com',
+    url='https://github.com/wookayin/semshi',
     license='MIT',
     python_requires='>=3.7',
     install_requires=[
