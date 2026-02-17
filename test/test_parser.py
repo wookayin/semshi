@@ -999,9 +999,17 @@ def test_postponed_evaluation_of_annotations_pep563_resolution(request):
     assert len(annos) == 8
 
     assert annos[0].name == 'C' and annos[0].hl_group == GLOBAL
-    assert annos[1].name == 'D' and annos[1].hl_group == UNRESOLVED
+    if sys.version_info >= (3, 14):
+        # PEP 649: deferred annotations change scope resolution — D and field
+        # are now resolved as class-local names rather than unresolved.
+        assert annos[1].name == 'D' and annos[1].hl_group == LOCAL
+    else:
+        assert annos[1].name == 'D' and annos[1].hl_group == UNRESOLVED
     assert annos[2].name == 'field2' and annos[2].hl_group == LOCAL
-    assert annos[3].name == 'field' and annos[3].hl_group == UNRESOLVED
+    if sys.version_info >= (3, 14):
+        assert annos[3].name == 'field' and annos[3].hl_group == LOCAL
+    else:
+        assert annos[3].name == 'field' and annos[3].hl_group == UNRESOLVED
 
     assert annos[4].name == 'C' and annos[4].hl_group == GLOBAL
     assert annos[5].name == 'field' and annos[5].hl_group == LOCAL
@@ -1036,17 +1044,31 @@ def test_generic_syntax():
             return first
     ''')
 
-    expected = [
-        ('get_first', MODULE_FUNC),
-        *[('T', LOCAL), ('float', BUILTIN)],  # TypeVar with bound (T: float)
-        *[('list', BUILTIN), ('T', LOCAL)],  # list[T]
-        ('T', LOCAL),  # -> T:
-        # for now, arg name is visited *after* params and type annotations
-        # because of the way how variable scope is handled
-        ('data', PARAMETER),
-        *[('first', LOCAL), ('T', FREE), ('data', PARAMETER)],
-        ('first', LOCAL),  # return ...
-    ]
+    if sys.version_info >= (3, 14):
+        # PEP 649: annotation `T` in function body is no longer in the
+        # function's symtable (moved to __annotate__ scope) → UNRESOLVED
+        expected = [
+            ('get_first', MODULE_FUNC),
+            *[('T', LOCAL), ('float', BUILTIN)],
+            *[('list', BUILTIN), ('T', LOCAL)],
+            ('T', LOCAL),  # -> T:
+            ('data', PARAMETER),
+            *[('first', LOCAL), ('T', UNRESOLVED), ('data', PARAMETER)],
+            ('first', LOCAL),
+        ]
+    else:
+        expected = [
+            ('get_first', MODULE_FUNC),
+            *[('T', LOCAL),
+              ('float', BUILTIN)],  # TypeVar with bound (T: float)
+            *[('list', BUILTIN), ('T', LOCAL)],  # list[T]
+            ('T', LOCAL),  # -> T:
+            # for now, arg name is visited *after* params and type annotations
+            # because of the way how variable scope is handled
+            ('data', PARAMETER),
+            *[('first', LOCAL), ('T', FREE), ('data', PARAMETER)],
+            ('first', LOCAL),  # return ...
+        ]
     assert [(n.name, n.hl_group) for n in names] == expected
 
 
@@ -1084,6 +1106,70 @@ def test_type_statement_py312():
         ],
     ]
     assert [(n.name, n.hl_group) for n in names] == expected
+
+
+@pytest.mark.skipif('sys.version_info < (3, 14)')
+def test_tstrings():
+    """Test t-string (PEP 750) highlighting: names inside interpolations
+    should be highlighted correctly."""
+    names = parse(r'''
+        #!/usr/bin/env python3
+        name = "world"
+        t"hello {name}"
+    ''')
+    assert [n.name for n in names] == ['name', 'name']
+    assert names[0].hl_group == GLOBAL
+    assert names[1].hl_group == GLOBAL
+
+
+@pytest.mark.skipif('sys.version_info < (3, 14)')
+def test_tstrings_nested():
+    """Test t-strings with nested expressions."""
+    names = parse(r'''
+        #!/usr/bin/env python3
+        items = [1, 2, 3]
+        t"count={len(items)}"
+    ''')
+    assert [n.name for n in names] == ['items', 'len', 'items']
+
+
+@pytest.mark.skipif('sys.version_info < (3, 14)')
+def test_deferred_annotations():
+    """Test that PEP 649 deferred annotations don't break scope resolution."""
+    names = parse(r'''
+        #!/usr/bin/env python3
+        def foo(a: int, b: str) -> bool:
+            x: list[int] = []
+            return True
+    ''')
+    expected = [
+        ('foo', GLOBAL),
+        ('int', BUILTIN),
+        ('str', BUILTIN),
+        ('bool', BUILTIN),
+        ('a', PARAMETER_UNUSED),
+        ('b', PARAMETER_UNUSED),
+        ('x', LOCAL),
+        ('list', BUILTIN),
+        ('int', BUILTIN),
+    ]
+    assert [(n.name, n.hl_group) for n in names] == expected
+
+
+@pytest.mark.skipif('sys.version_info < (3, 14)')
+def test_deferred_annotations_class():
+    """Test deferred annotations in class bodies."""
+    names = parse(r'''
+        #!/usr/bin/env python3
+        class Foo:
+            attr: int = 1
+            def method(self, v: list[str]) -> dict:
+                pass
+    ''')
+    groups = {n.name: n.hl_group for n in names}
+    assert groups['Foo'] == GLOBAL
+    assert groups['self'] == SELF
+    assert groups['method'] == LOCAL
 
 
 @pytest.mark.skipif('sys.version_info < (3, 13)')

@@ -24,6 +24,8 @@ jobs:
             os: ubuntu-latest
           - python-version: "3.13"
             os: ubuntu-latest
+          - python-version: "3.14"
+            os: ubuntu-latest
           # neovim-version: nightly
           # PYNVIM_MASTER: true
 

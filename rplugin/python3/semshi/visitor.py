@@ -16,6 +16,7 @@ else:
     TYPE_VARS = ()
 
 HAS_PY313 = sys.version_info >= (3, 13)
+HAS_PY314 = sys.version_info >= (3, 14)
 
 # Node types which introduce a new scope and child symboltable
 BLOCKS = (
@@ -161,6 +162,11 @@ class Visitor:
         # the order they appear ensures consistency with AST visitation.
         children = sorted(current_table.get_children(),
                           key=lambda st: st.get_lineno())
+        if HAS_PY314:
+            # PEP 649: Filter out annotation scopes (__annotate__) added by
+            # deferred annotation evaluation — they don't correspond to any
+            # AST node the visitor processes.
+            children = [c for c in children if c.get_type() != 'annotation']
         self._table_stack += reversed(children)
         self._env.append(current_table)
         self._cur_env = self._env[:]
